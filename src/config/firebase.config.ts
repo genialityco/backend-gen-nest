@@ -1,8 +1,8 @@
 import { registerAs } from '@nestjs/config';
 
 export default registerAs('firebase', () => ({
-  projectId: "global-auth-49737",
-  privateKey: "-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQDe+W+vDyvu/pkt\nfRLGZ1KxTApCCLaEfH+6agy99jfN1IZOSxTMECCr4re/vCCWzVVs2r4H3oWOKNd8\nhEOOrOmVffSgGVCE7rszLyN8k2ltW8F/AmuAPOiChVMkoDKQ1dLVLayJ2jelmve2\nAbF8hqyWAy39QZ4zFZxXiKv9lIzKrqTGmWv8cfEIXEpf8I76+Inw/gpwzWEk3jC+\npQvDEarLV7UixbfnlE2/7zmnX+UjTbg303M/2ko1DNNHj4OphLKU9MrVOQ0BJa7I\nUFYngOotD2NxeiFkIon/8xv3s9Nl5Z0ECLN4FpyvRimUOtscHtzvuXJ8xtcdqt7I\nYX+yHjwDAgMBAAECggEAAy7NVNLjHii9OASCiZl8+THsLZAhRtfeHOOZpfaHSmVf\nu2tf8x/Bz6JPXCnLz0tEDmc68jLPdj2IAeuDaVx3gx5GqShjWVptCqiAGa2jAiAe\nrXjz3uM/sGlFzA6LWjzrIwbhYSBfzfnd0lfI2E211fhapjRTFUiYMDmvttFxhw0b\nUrwXQFSDcCcuQWSlYuPBpABUYub0cDnAkME3IS224VB/yrdPSiQngKU1Y1Bjr2Zi\n7tLHrpZT782G+6VW333X29hg1IH3zf4xGb95B7otszvzsgxtkUxtFAItKA6S8isE\npJOYqc4dXIQ2+jWUi2nv1F91AVcdLpwNmAWX1oz0tQKBgQD3voPVbz9dwdIszjx4\nQho0t0OtHB/NS7N3E5zevSFRYIBDrsf3paiKLZftzrUmtlf0qqMgpgYr08OdeiAv\nTP9mK9LmG2slaDyVH3yuuKVkrRkXrXDE4MvHYxtXEzgRQlrIG7KnJAERGjWgzYZL\n/ko+Xs5oky+saF+/64t+WZWypwKBgQDmZ5yjb0wWlQtwvRqhlwiahn69UZMTuwNg\ndMW14KDWd7x1osH08tnv9TU3uhQ8f9KCOnzxfcbXDu1SfQe/Z65jEnUJBATSrHo/\nB31gxsdtlE60TNP3v2grtlwIsah/2WSShXucBZtzmhs1VWXzr0flfl5HZwbPYnMn\nmVR4WC3jRQKBgAWHzDucgyadqAp2BCWPHDSnDqyznwYfNX9oAa17PV4qsFJSeYZO\nvWdwQx786VBW67m7gW6+Jg8eaBSA4G0N4/ms6sVWQVsRa6DMliT0XETWFGRR692J\nQyNNVBPqiurft1UWQTO3+wodsqrHS8MwhwnDZgoxlvPbVJ/dKz0D1PKrAoGABtk1\nkrYQMOulN2injf4LR2yP/9iY4pFAfHF8HvfaUAWnGGgKE9nUGInVVx6000eJXk2W\nwSbX7jSHYVhODqZqTI+T4vy3l/uAdrcmRuYhr2QlIr7V3htWYVY+ThPZylMP5jsJ\nfY29HSaLgH5VVXT0UiH7c2vgi/GFMrwgAqO8WXECgYBTwbggTCAiZAo/zLrhJU5n\n0JrI5zCEyOIpAbsx7u5d7eSP/rfB6VDBBRt32YvtbOAAKNp3fpO7n/uTTZJxgIvs\n/vbf0khf/U+X3f8LOj8Jej5VJLKqw4lCKh6VvunZ0VSQyrKuf7aBjaymo8T1mwJC\nOGZYhBTEWLyByi2c/sn/bQ==\n-----END PRIVATE KEY-----\n",
-  clientEmail: "firebase-adminsdk-rfkvi@global-auth-49737.iam.gserviceaccount.com",
-  databaseURL: "https://global-auth-49737.firebaseio.com",
+  projectId: process.env.FIREBASE_PROJECT_ID,
+  privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+  clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+  databaseURL: process.env.FIREBASE_DATABASE_URL,
 }));
