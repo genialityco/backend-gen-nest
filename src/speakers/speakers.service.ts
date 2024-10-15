@@ -56,7 +56,8 @@ export class SpeakersService {
       }
     });
 
-    const totalItems = await this.SpeakerModel.countDocuments(filterQuery).exec();
+    const totalItems =
+      await this.SpeakerModel.countDocuments(filterQuery).exec();
     const items = await this.SpeakerModel.find(filterQuery)
       .skip(skip)
       .limit(limit)
@@ -76,9 +77,13 @@ export class SpeakersService {
   }
 
   async update(id: string, updateSpeakerDto: any): Promise<Speaker> {
-    const speaker = await this.SpeakerModel.findByIdAndUpdate(id, updateSpeakerDto, {
-      new: true,
-    }).exec();
+    const speaker = await this.SpeakerModel.findByIdAndUpdate(
+      id,
+      updateSpeakerDto,
+      {
+        new: true,
+      },
+    ).exec();
     if (!speaker) {
       throw new NotFoundException('Speaker no encontrado');
     }

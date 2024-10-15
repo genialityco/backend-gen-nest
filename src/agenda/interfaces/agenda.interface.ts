@@ -7,7 +7,7 @@ export interface Agenda {
     startDateTime: Date;
     endDateTime: Date;
     speakers: Types.ObjectId[];
-    module?: Types.ObjectId; 
-    room?: string; 
+    module?: Types.ObjectId;
+    room?: string;
   }[];
 }

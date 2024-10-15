@@ -1,4 +1,10 @@
-import { IsNotEmpty, IsString, IsDate, IsMongoId, IsOptional } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsString,
+  IsDate,
+  IsMongoId,
+  IsOptional,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class CreateModuleDto {

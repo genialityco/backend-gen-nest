@@ -16,10 +16,15 @@ export class CertificateService {
     return newCertificate.save();
   }
 
-  async update(id: string, certificateDto: UpdateCertificateDto): Promise<Certificate | null> {
-    return this.certificateModel.findByIdAndUpdate(id, certificateDto, {
-      new: true,
-    }).exec();
+  async update(
+    id: string,
+    certificateDto: UpdateCertificateDto,
+  ): Promise<Certificate | null> {
+    return this.certificateModel
+      .findByIdAndUpdate(id, certificateDto, {
+        new: true,
+      })
+      .exec();
   }
 
   async findAll(): Promise<Certificate[]> {

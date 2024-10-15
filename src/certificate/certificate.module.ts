@@ -5,8 +5,12 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { CertificateSchema } from './schemas/certificate.schema';
 
 @Module({
-  imports:[MongooseModule.forFeature([{name: 'Certificate', schema: CertificateSchema}])],
+  imports: [
+    MongooseModule.forFeature([
+      { name: 'Certificate', schema: CertificateSchema },
+    ]),
+  ],
   providers: [CertificateService],
-  controllers: [CertificateController]
+  controllers: [CertificateController],
 })
 export class CertificateModule {}

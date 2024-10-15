@@ -1,4 +1,12 @@
-import { IsNotEmpty, IsArray, IsString, IsOptional, IsMongoId, IsISO8601, ArrayNotEmpty } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsArray,
+  IsString,
+  IsOptional,
+  IsMongoId,
+  IsISO8601,
+  ArrayNotEmpty,
+} from 'class-validator';
 
 export class CreateAgendaDto {
   @IsMongoId()

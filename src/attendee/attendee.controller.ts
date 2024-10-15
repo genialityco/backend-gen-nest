@@ -42,9 +42,7 @@ export class AttendeeController {
   }
 
   @Get()
-  async findAll(
-    @Query() paginationDto: PaginationDto,
-  ): Promise<
+  async findAll(@Query() paginationDto: PaginationDto): Promise<
     ResponseDto<{
       items: Attendee[];
       totalItems: number;

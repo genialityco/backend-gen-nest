@@ -14,7 +14,7 @@ async function bootstrap() {
 
   // Usar puerto desde variables de entorno
   const port = process.env.PORT || 3000;
-  
+
   // Iniciar el servidor en la dirección 0.0.0.0 y el puerto dinámico
   await app.listen(port, '0.0.0.0');
 

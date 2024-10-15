@@ -4,7 +4,11 @@ export const EventSchema = new mongoose.Schema(
   {
     name: { type: String, required: true },
     description: { type: String, required: false },
-    organizationId: { type: mongoose.Schema.Types.ObjectId, ref: 'Organization', required: true },
+    organizationId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Organization',
+      required: true,
+    },
     userProperties: { type: mongoose.Schema.Types.Mixed },
     startDate: { type: Date, required: true },
     endDate: { type: Date, required: true },

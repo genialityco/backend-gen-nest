@@ -13,13 +13,18 @@ export class OrganizationService {
   ) {}
 
   // Crear una nueva organización
-  async create(createOrganizationDto: CreateOrganizationDto): Promise<Organization> {
+  async create(
+    createOrganizationDto: CreateOrganizationDto,
+  ): Promise<Organization> {
     const newOrganization = new this.organizationModel(createOrganizationDto);
     return newOrganization.save();
   }
 
   // Actualizar organización por ID
-  async update(id: string, updateOrganizationDto: UpdateOrganizationDto): Promise<Organization> {
+  async update(
+    id: string,
+    updateOrganizationDto: UpdateOrganizationDto,
+  ): Promise<Organization> {
     const organization = await this.organizationModel
       .findByIdAndUpdate(id, updateOrganizationDto, { new: true })
       .exec();
@@ -40,14 +45,21 @@ export class OrganizationService {
     const skip = (page - 1) * limit;
 
     const totalItems = await this.organizationModel.countDocuments().exec();
-    const items = await this.organizationModel.find().skip(skip).limit(limit).exec();
+    const items = await this.organizationModel
+      .find()
+      .skip(skip)
+      .limit(limit)
+      .exec();
     const totalPages = Math.ceil(totalItems / limit);
 
     return { items, totalItems, totalPages, currentPage: page };
   }
 
   // Buscar organizaciones con filtros
-  async findWithFilters(filters: Partial<Organization>, paginationDto: PaginationDto): Promise<{
+  async findWithFilters(
+    filters: Partial<Organization>,
+    paginationDto: PaginationDto,
+  ): Promise<{
     items: Organization[];
     totalItems: number;
     totalPages: number;
@@ -67,8 +79,14 @@ export class OrganizationService {
       }
     });
 
-    const totalItems = await this.organizationModel.countDocuments(filterQuery).exec();
-    const items = await this.organizationModel.find(filterQuery).skip(skip).limit(limit).exec();
+    const totalItems = await this.organizationModel
+      .countDocuments(filterQuery)
+      .exec();
+    const items = await this.organizationModel
+      .find(filterQuery)
+      .skip(skip)
+      .limit(limit)
+      .exec();
     const totalPages = Math.ceil(totalItems / limit);
 
     return { items, totalItems, totalPages, currentPage: page };
@@ -85,7 +103,9 @@ export class OrganizationService {
 
   // Eliminar una organización por ID
   async remove(id: string): Promise<Organization> {
-    const organization = await this.organizationModel.findByIdAndDelete(id).exec();
+    const organization = await this.organizationModel
+      .findByIdAndDelete(id)
+      .exec();
     if (!organization) {
       throw new NotFoundException('Organización no encontrada');
     }

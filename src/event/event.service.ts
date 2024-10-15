@@ -76,7 +76,7 @@ export class EventService {
         }
       }
     });
-    
+
     // Aplicar la paginación después de construir el query
     const totalItems = await this.EventModel.countDocuments(filterQuery).exec();
     const items = await this.EventModel.find(filterQuery)

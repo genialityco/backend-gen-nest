@@ -60,7 +60,10 @@ export class CertificateController {
     @Param('id') id: string,
     @Body(new ValidationPipe()) updateCertificateDto: UpdateCertificateDto,
   ): Promise<ResponseDto<Certificate>> {
-    const result = await this.certificateService.update(id, updateCertificateDto);
+    const result = await this.certificateService.update(
+      id,
+      updateCertificateDto,
+    );
     return result
       ? new ResponseDto('success', 'Certificado actualizado', result)
       : new ResponseDto('error', 'No se pudo actualizar el certificado');

@@ -5,7 +5,9 @@ import { MemberController } from './member.controller';
 import { MemberSchema } from './schemas/member.schema';
 
 @Module({
-  imports: [MongooseModule.forFeature([{ name: 'Member', schema: MemberSchema }])],
+  imports: [
+    MongooseModule.forFeature([{ name: 'Member', schema: MemberSchema }]),
+  ],
   controllers: [MemberController],
   providers: [MemberService],
 })

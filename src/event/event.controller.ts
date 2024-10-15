@@ -50,9 +50,7 @@ export class EventController {
   }
 
   @Get()
-  async findAll(
-    @Query() paginationDto: PaginationDto,
-  ): Promise<
+  async findAll(@Query() paginationDto: PaginationDto): Promise<
     ResponseDto<{
       items: EventInterface[];
       totalItems: number;

@@ -50,9 +50,7 @@ export class ModulesController {
   }
 
   @Get()
-  async findAll(
-    @Query() paginationDto: PaginationDto,
-  ): Promise<
+  async findAll(@Query() paginationDto: PaginationDto): Promise<
     ResponseDto<{
       items: Module[];
       totalItems: number;
