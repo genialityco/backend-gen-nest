@@ -18,7 +18,7 @@ export const SurveySchema = new Schema(
       required: true,
       ref: 'Organization',
     },
-    eventId: { type: Schema.Types.ObjectId, ref: 'Event' },
+    eventId: { type: Schema.Types.ObjectId, ref: 'Event', required: false},
   },
   { timestamps: true },
 );

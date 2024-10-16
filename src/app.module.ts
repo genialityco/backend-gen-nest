@@ -14,6 +14,8 @@ import { RoomsModule } from './rooms/rooms.module';
 import { UserModule } from './user/user.module';
 import { MemberModule } from './member/member.module';
 import { SurveyModule } from './survey/survey.module';
+import { PostersModule } from './posters/posters.module';
+import { NewsModule } from './news/news.module';
 
 @Module({
   imports: [
@@ -31,6 +33,8 @@ import { SurveyModule } from './survey/survey.module';
     UserModule,
     MemberModule,
     SurveyModule,
+    PostersModule,
+    NewsModule,
   ],
 })
 export class AppModule {
