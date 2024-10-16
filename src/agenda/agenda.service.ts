@@ -41,7 +41,7 @@ export class AgendaService {
       .find()
       .populate('eventId')
       .populate('sessions.speakers')
-      .populate('sessions.module')
+      .populate('sessions.moduleId')
       .skip(skip)
       .limit(limit)
       .exec();
@@ -56,7 +56,7 @@ export class AgendaService {
       .findById(id)
       .populate('eventId')
       .populate('sessions.speakers')
-      .populate('sessions.module')
+      .populate('sessions.moduleId')
       .exec();
   }
 
