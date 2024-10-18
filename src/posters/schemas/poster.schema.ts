@@ -4,8 +4,8 @@ export const PosterSchema = new Schema(
   {
     title: { type: String, required: true },
     category: { type: String, required: true },
-    topic: { type: String, required: true },
-    institution: { type: String, required: true },
+    topic: { type: String, required: false },
+    institution: { type: String, required: false },
     authors: [{ type: String, required: true }],
     votes: { type: Number, default: 0 },
     urlPdf: { type: String, required: true },

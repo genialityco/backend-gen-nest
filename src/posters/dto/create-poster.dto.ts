@@ -10,11 +10,11 @@ export class CreatePosterDto {
   readonly category: string;
 
   @IsString()
-  @IsNotEmpty()
+  @IsOptional()
   readonly topic: string;
 
   @IsString()
-  @IsNotEmpty()
+  @IsOptional()
   readonly institution: string;
 
   @IsArray()
