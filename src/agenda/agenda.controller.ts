@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Put,
+  Patch,
   Delete,
   Param,
   Body,
@@ -73,7 +74,7 @@ export class AgendaController {
       ? new ResponseDto('success', 'Agenda creada', result)
       : new ResponseDto('error', 'No se pudo crear la agenda');
   }
-
+  @Patch(':id')
   @Put(':id')
   async update(
     @Param('id') id: string,
@@ -84,6 +85,8 @@ export class AgendaController {
       ? new ResponseDto('success', 'Agenda actualizada', result)
       : new ResponseDto('error', 'No se pudo actualizar la agenda');
   }
+
+
 
   @Delete(':id')
   async remove(@Param('id') id: string): Promise<ResponseDto<Agenda>> {
