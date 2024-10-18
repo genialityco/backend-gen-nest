@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Put,
+  Patch,
   Delete,
   Param,
   Body,
@@ -77,6 +78,7 @@ export class PostersController {
       : new ResponseDto('error', 'No se pudo crear el poster');
   }
 
+  @Patch(':id')
   @Put(':id')
   async update(
     @Param('id') id: string,
