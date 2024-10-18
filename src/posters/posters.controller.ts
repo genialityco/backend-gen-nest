@@ -68,6 +68,7 @@ export class PostersController {
       : new ResponseDto('error', 'No se encontraron posters');
   }
 
+  
   @Post()
   async create(
     @Body(new ValidationPipe()) createPosterDto: CreatePosterDto,
@@ -78,7 +79,7 @@ export class PostersController {
       : new ResponseDto('error', 'No se pudo crear el poster');
   }
 
-  
+  @Patch(':id')
   @Put(':id')
   async update(
     @Param('id') id: string,
@@ -98,7 +99,7 @@ export class PostersController {
       : new ResponseDto('error', 'No se pudo eliminar el poster');
   }
 
-  @Patch(':id')
+  
   @Post(':id/vote')
   async voteForPoster(
     @Param('id') posterId: string,
