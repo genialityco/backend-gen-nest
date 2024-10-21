@@ -65,4 +65,12 @@ export class UserController {
     const result = await this.userService.remove(id);
     return new ResponseDto('success', 'Usuario eliminado', result);
   }
+
+  @Post('updatePushToken')
+  async updatePushToken(
+    @Body() body: { userId: string; expoPushToken: string },
+  ) {
+    const { userId, expoPushToken } = body;
+    return this.userService.updatePushToken(userId, expoPushToken);
+  }
 }

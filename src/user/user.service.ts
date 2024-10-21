@@ -92,4 +92,15 @@ export class UserService {
     }
     return user;
   }
+
+  async updatePushToken(userId: string, expoPushToken: string): Promise<User> {
+    const user = await this.userModel.findById(userId);
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    user.expoPushToken = expoPushToken;
+    return user.save();
+  }
 }

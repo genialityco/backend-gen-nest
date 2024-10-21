@@ -2,25 +2,34 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import * as morgan from 'morgan';
+import * as os from 'os';
+
+// Función para obtener la IP de la red local
+function getLocalNetworkIp() {
+  const interfaces = os.networkInterfaces();
+  for (const name of Object.keys(interfaces)) {
+    for (const iface of interfaces[name]) {
+      if (iface.family === 'IPv4' && !iface.internal) {
+        return iface.address;
+      }
+    }
+  }
+}
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   app.enableCors();
-
-  // Usar filtros globales para manejo de excepciones
   app.useGlobalFilters(new HttpExceptionFilter());
-
-  // Middleware de morgan para logging
   app.use(morgan('combined'));
 
-  // Usar puerto desde variables de entorno
   const port = process.env.PORT || 3000;
 
-  // Iniciar el servidor en la dirección 0.0.0.0 y el puerto dinámico
   await app.listen(port, '0.0.0.0');
 
-  console.log(`Application is running on: ${await app.getUrl()}`);
+  // Mostrar la IP de la red local en lugar de localhost
+  const localIp = getLocalNetworkIp();
+  console.log(`Application is running on: http://${localIp}:${port}`);
 }
 
 bootstrap();

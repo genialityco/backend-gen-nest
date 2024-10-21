@@ -4,4 +4,7 @@ export class CreateUserDto {
   @IsString()
   @IsNotEmpty()
   readonly firebaseUid: string;
+
+  @IsString()
+  expoPushToken?: string;
 }
