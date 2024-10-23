@@ -68,6 +68,8 @@ export class PostersController {
     const result = await this.postersService.findAll(paginationDto);
 
     res.header('x-total-count',result.totalItems.toString());
+    res.header('access-control-expose-headers','x-total-count');
+ 
     return result.items.length > 0
       ? new ResponseDto('success', 'Posters encontrados', result)
       : new ResponseDto('error', 'No se encontraron posters');

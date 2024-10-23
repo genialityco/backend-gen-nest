@@ -17,6 +17,18 @@ export class PaginationDto {
   readonly _end;
 
   @IsOptional()
+  @Type(() => String)
+  @IsNumber()
+  @Min(0)
+  readonly _sort ="";
+
+  @IsOptional()
+  @Type(() => String)
+  @IsNumber()
+  @Min(0)
+  readonly _order ="";
+
+  @IsOptional()
   @Type(() => Number)
   @IsNumber()
   @Min(1)
@@ -27,4 +39,5 @@ export class PaginationDto {
   @IsNumber()
   @Min(1)
   readonly limit?: number = 10;
+
 }
