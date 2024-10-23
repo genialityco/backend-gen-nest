@@ -10,6 +10,7 @@ import {
   Query,
   ValidationPipe,
   BadRequestException,
+  Res
 } from '@nestjs/common';
 import { PostersService } from './posters.service';
 import { CreatePosterDto } from './dto/create-poster.dto';
@@ -18,6 +19,7 @@ import { VotePosterDto } from './dto/vote-poster.dto';
 import { Poster } from './interfaces/poster.interface';
 import { ResponseDto } from 'src/common/response.dto';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
+import { Response } from 'express';
 
 @Controller('posters')
 export class PostersController {
@@ -54,7 +56,8 @@ export class PostersController {
   }
 
   @Get()
-  async findAll(@Query() paginationDto: PaginationDto): Promise<
+  
+  async findAll( @Res ({ passthrough: true }) res: Response,@Query() paginationDto: PaginationDto): Promise<
     ResponseDto<{
       items: Poster[];
       totalItems: number;
@@ -63,6 +66,8 @@ export class PostersController {
     }>
   > {
     const result = await this.postersService.findAll(paginationDto);
+
+    res.header('x-total-count',result.totalItems.toString());
     return result.items.length > 0
       ? new ResponseDto('success', 'Posters encontrados', result)
       : new ResponseDto('error', 'No se encontraron posters');

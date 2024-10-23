@@ -39,6 +39,7 @@ import { NewsModule } from './news/news.module';
 })
 export class AppModule {
   constructor(private readonly configService: ConfigService) {
+    console.log("process.env AppModule",);
     initializeFirebaseAdmin();
   }
 }

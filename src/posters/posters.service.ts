@@ -30,14 +30,31 @@ export class PostersService {
     totalPages: number;
     currentPage: number;
   }> {
-    const { page = 1, limit = 50 } = paginationDto;
-    const skip = (page - 1) * limit;
+
+
+    const { page = 1, limit = 10,_start,_end } = paginationDto;
+    let skip = 0; 
+    let howmany = limit;
+    let resultpage = page;
+    console.log('paginationDto',_start,_end);
 
     const totalItems = await this.PosterModel.countDocuments().exec();
-    const items = await this.PosterModel.find().skip(skip).limit(limit).exec();
-    const totalPages = Math.ceil(totalItems / limit);
+    if (_start !== undefined && _end !==undefined){
+      skip = _start;
+      howmany =  _end -_start;
+      resultpage = howmany==0?0:Math.floor(_start/howmany)+1;
+    }else{
+      skip = (page - 1) * limit;            
+      howmany = limit;
+      resultpage = page;
+    }
 
-    return { items, totalItems, totalPages, currentPage: page };
+    const items = await this.PosterModel.find().skip(skip).limit(howmany).exec();
+    const totalPages = Math.ceil(totalItems / howmany);
+   
+
+
+    return { items, totalItems, totalPages, currentPage: resultpage };
   }
 
   // Buscar posters con filtros y paginación
