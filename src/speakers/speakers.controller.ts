@@ -3,11 +3,13 @@ import {
   Get,
   Post,
   Put,
+  Patch,
   Delete,
   Param,
   Body,
   Query,
   ValidationPipe,
+  Res
 } from '@nestjs/common';
 import { SpeakersService } from './speakers.service';
 import { CreateSpeakerDto } from './dto/create-speaker.dto';
@@ -15,7 +17,7 @@ import { UpdateSpeakerDto } from './dto/update-speaker.dto';
 import { Speaker } from './interfaces/speakers.interface';
 import { ResponseDto } from 'src/common/response.dto';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
-
+import { Response } from 'express';
 @Controller('speakers')
 export class SpeakersController {
   constructor(private readonly speakersService: SpeakersService) {}
@@ -42,9 +44,17 @@ export class SpeakersController {
 
   @Get()
   async findAll(
+    @Res ({ passthrough: true }) res: Response,
     @Query() paginationDto: PaginationDto,
+    @Query('names_like') names_like:string,
   ): Promise<ResponseDto<any>> {
-    const result = await this.speakersService.findAll(paginationDto);
+
+    
+    const result = await this.speakersService.findAll(paginationDto,names_like);
+    res.header('x-total-count',result.totalItems.toString());
+    res.header('access-control-expose-headers','x-total-count');
+
+
     return new ResponseDto('success', 'Speakers encontrados', result);
   }
 
@@ -58,6 +68,7 @@ export class SpeakersController {
       : new ResponseDto('error', 'No se pudo crear el speaker');
   }
 
+  @Patch(':id')
   @Put(':id')
   async update(
     @Param('id') id: string,
