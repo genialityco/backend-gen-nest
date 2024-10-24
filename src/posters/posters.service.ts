@@ -24,35 +24,49 @@ export class PostersService {
   }
 
   // Obtener todos los posters con paginación
-  async findAll(paginationDto: PaginationDto): Promise<{
+  async findAll(
+    paginationDto: PaginationDto,
+    title_like: string,
+  ): Promise<{
     items: Poster[];
     totalItems: number;
     totalPages: number;
     currentPage: number;
   }> {
-
-
-    const { page = 1, limit = 10,_start,_end } = paginationDto;
-    let skip = 0; 
+    const { page = 1, limit = 10, _start, _end } = paginationDto;
+    let skip = 0;
     let howmany = limit;
     let resultpage = page;
-    console.log('paginationDto',_start,_end);
+    console.log('paginationDto', _start, _end);
 
-    const totalItems = await this.PosterModel.countDocuments().exec();
-    if (_start !== undefined && _end !==undefined){
+    if (_start !== undefined && _end !== undefined) {
       skip = _start;
-      howmany =  _end -_start;
-      resultpage = howmany==0?0:Math.floor(_start/howmany)+1;
-    }else{
-      skip = (page - 1) * limit;            
+      howmany = _end - _start;
+      resultpage = howmany == 0 ? 0 : Math.floor(_start / howmany) + 1;
+    } else {
+      skip = (page - 1) * limit;
       howmany = limit;
       resultpage = page;
     }
 
-    const items = await this.PosterModel.find().skip(skip).limit(howmany).exec();
-    const totalPages = Math.ceil(totalItems / howmany);
-   
+    const filterQuery: FilterQuery<Poster> = {};
+    if (title_like) {
+      filterQuery.$or = [
+        { title: { $regex: new RegExp(title_like, 'i') } },
+        // { authors: { $regex: new RegExp(searchTerm, 'i') } },
+        // { topic: { $regex: new RegExp(searchTerm, 'i') } },
+        // { institution: { $regex: new RegExp(searchTerm, 'i') } },
+      ];
+    }
 
+    const totalItems =
+      await this.PosterModel.countDocuments(filterQuery).exec();
+    const items = await this.PosterModel.find(filterQuery)
+      .skip(skip)
+      .limit(howmany)
+      .exec();
+
+    const totalPages = Math.ceil(totalItems / howmany);
 
     return { items, totalItems, totalPages, currentPage: resultpage };
   }
