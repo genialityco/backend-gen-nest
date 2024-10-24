@@ -16,6 +16,7 @@ import { MemberModule } from './member/member.module';
 import { SurveyModule } from './survey/survey.module';
 import { PostersModule } from './posters/posters.module';
 import { NewsModule } from './news/news.module';
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { NewsModule } from './news/news.module';
     SurveyModule,
     PostersModule,
     NewsModule,
+    NotificationsModule
   ],
 })
 export class AppModule {
