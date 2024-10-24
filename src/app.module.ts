@@ -16,11 +16,15 @@ import { MemberModule } from './member/member.module';
 import { SurveyModule } from './survey/survey.module';
 import { PostersModule } from './posters/posters.module';
 import { NewsModule } from './news/news.module';
-
+import { MulterModule } from '@nestjs/platform-express';
+import { UploadController } from './utils/UploadController';
 @Module({
   imports: [
     ConfigModule.forRoot(),
     MongooseModule.forRoot(process.env.MONGO_URI),
+    MulterModule.register({
+      dest: './uploads',
+    }),
     AttendeeModule,
     CertificateModule,
     EventModule,
@@ -36,10 +40,13 @@ import { NewsModule } from './news/news.module';
     PostersModule,
     NewsModule,
   ],
+  controllers: [UploadController],
+  providers: [initializeFirebaseAdmin],
+
 })
 export class AppModule {
   constructor(private readonly configService: ConfigService) {
     console.log("process.env AppModule",);
-    initializeFirebaseAdmin();
+    //new initializeFirebaseAdmin();
   }
 }
