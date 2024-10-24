@@ -16,6 +16,8 @@ import { MemberModule } from './member/member.module';
 import { SurveyModule } from './survey/survey.module';
 import { PostersModule } from './posters/posters.module';
 import { NewsModule } from './news/news.module';
+import { NotificationsModule } from './notifications/notifications.module';
+
 import { MulterModule } from '@nestjs/platform-express';
 import { UploadController } from './utils/UploadController';
 @Module({
@@ -39,6 +41,7 @@ import { UploadController } from './utils/UploadController';
     SurveyModule,
     PostersModule,
     NewsModule,
+    NotificationsModule
   ],
   controllers: [UploadController],
   providers: [initializeFirebaseAdmin],
