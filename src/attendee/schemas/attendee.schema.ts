@@ -17,6 +17,11 @@ export const AttendeeSchema = new mongoose.Schema(
       ref: 'Member',
       required: true,
     },
+    certificateId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Certificate',
+      required: false,
+    }
   },
   { timestamps: true },
 );

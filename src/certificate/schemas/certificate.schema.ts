@@ -8,6 +8,7 @@ export const CertificateSchema = new mongoose.Schema(
       ref: 'Event',
       required: true,
     },
+    
   },
   { timestamps: true },
 );

@@ -27,6 +27,18 @@ export const EventSchema = new mongoose.Schema(
         miniatureImage: '',
       },
     },
+    eventSections: {
+      type: Object,
+      required: false,
+      default: {
+        agenda: true,
+        speakers: true,
+        documents: true,
+        ubication: true,
+        certificate: true,
+        posters: true,
+      },
+    },
   },
   { timestamps: true },
 );
