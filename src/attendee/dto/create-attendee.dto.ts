@@ -12,4 +12,7 @@ export class CreateAttendeeDto {
   @IsMongoId()
   @IsNotEmpty()
   readonly memberId: string;
+
+  @IsOptional()
+  readonly attended: boolean;
 }

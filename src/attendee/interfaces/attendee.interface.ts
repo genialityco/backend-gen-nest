@@ -4,4 +4,5 @@ export interface Attendee extends Document {
   eventId: Types.ObjectId;
   userId?: Types.ObjectId;
   memberId?: Types.ObjectId;
+  attended: boolean;
 }
