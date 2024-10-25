@@ -52,4 +52,7 @@ export class CreateEventDto {
   @IsObject()
   @IsOptional()
   readonly eventSections?: Record<string, boolean>;
+
+  @IsOptional()
+  readonly price?: number;
 }
