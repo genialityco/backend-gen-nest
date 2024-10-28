@@ -96,6 +96,7 @@ export class PostersService {
       filterQuery.$or = [
         { title: { $regex: new RegExp(searchTerm, 'i') } },
         { authors: { $regex: new RegExp(searchTerm, 'i') } },
+        { category: { $regex: new RegExp(searchTerm, 'i') } },
         { topic: { $regex: new RegExp(searchTerm, 'i') } },
         { institution: { $regex: new RegExp(searchTerm, 'i') } },
       ];

@@ -48,4 +48,11 @@ export class CreateEventDto {
   @IsObject()
   @IsOptional()
   readonly styles?: Record<string, any>;
+
+  @IsObject()
+  @IsOptional()
+  readonly eventSections?: Record<string, boolean>;
+
+  @IsOptional()
+  readonly price?: number;
 }

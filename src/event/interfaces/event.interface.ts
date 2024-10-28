@@ -15,6 +15,8 @@ export interface EventInterface extends Document {
     };
   };
   readonly styles?: Record<string, any>;
+  readonly eventSections?: Record<string, boolean>;
   readonly createdAt: Date;
   readonly updatedAt: Date;
+  readonly price?: number;
 }
