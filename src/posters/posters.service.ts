@@ -107,6 +107,11 @@ export class PostersService {
       if (filters[key] && key !== 'search') {
         if (key === 'eventId') {
           filterQuery[key] = new Types.ObjectId(filters[key]);
+        } else if (key === 'voters') {
+          // Filtrar por un userId específico en el campo voters
+          filterQuery[key] = {
+            $in: [new Types.ObjectId(filters[key] as unknown as string)],
+          };
         } else if (typeof filters[key] === 'string') {
           filterQuery[key] = { $regex: new RegExp(filters[key], 'i') };
         } else {
