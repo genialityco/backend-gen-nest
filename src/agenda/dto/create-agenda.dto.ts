@@ -38,7 +38,7 @@ export class SessionDto {
 
   @IsOptional()
   @IsMongoId()
-  readonly module?: string;
+  readonly moduleId?: string;
 
   @IsOptional()
   @IsString()
