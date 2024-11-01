@@ -1,4 +1,4 @@
-import { IsMongoId, IsNotEmpty, IsObject, IsOptional } from 'class-validator';
+import { IsBoolean, IsMongoId, IsNotEmpty, IsObject, IsOptional } from 'class-validator';
 
 export class CreateMemberDto {
   @IsMongoId()
@@ -8,6 +8,10 @@ export class CreateMemberDto {
   @IsMongoId()
   @IsNotEmpty()
   readonly organizationId: string;
+
+  @IsOptional()
+  @IsBoolean()
+  memberActive: boolean;
 
   @IsObject()
   @IsOptional()
