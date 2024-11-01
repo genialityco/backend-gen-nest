@@ -61,6 +61,10 @@ export class PostersController {
     @Res ({ passthrough: true }) res: Response,
     @Query() paginationDto: PaginationDto,
     @Query('title_like') title_like:string,
+    @Query('category_like') category_like:string,
+    @Query('authors_like') authors_like:string,
+    @Query('topic_like') topic_like:string,
+
   )
     
     : Promise<
@@ -72,7 +76,7 @@ export class PostersController {
     }>
   > {
     console.log('title_like',title_like);
-    const result = await this.postersService.findAll(paginationDto,title_like);
+    const result = await this.postersService.findAll(paginationDto,title_like, category_like,authors_like,topic_like);
 
     res.header('x-total-count',result.totalItems.toString());
     res.header('access-control-expose-headers','x-total-count');

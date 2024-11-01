@@ -27,6 +27,9 @@ export class PostersService {
   async findAll(
     paginationDto: PaginationDto,
     title_like: string,
+    category_like: string,
+    authors_like: string,
+    topic_like: string,
   ): Promise<{
     items: Poster[];
     totalItems: number;
@@ -50,14 +53,18 @@ export class PostersService {
     }
 
     const filterQuery: FilterQuery<Poster> = {};
-    if (title_like) {
-      filterQuery.$or = [
-        { title: { $regex: new RegExp(title_like, 'i') } },
-        // { authors: { $regex: new RegExp(searchTerm, 'i') } },
-        // { topic: { $regex: new RegExp(searchTerm, 'i') } },
-        // { institution: { $regex: new RegExp(searchTerm, 'i') } },
-      ];
-    }
+
+    const filters = [];
+    if (title_like)
+      filters.push({ title: { $regex: new RegExp(title_like, 'i') } });
+    if (category_like)
+      filters.push({ category: { $regex: new RegExp(category_like, 'i') } });
+    if (authors_like)
+      filters.push({ authors: { $regex: new RegExp(authors_like, 'i') } });
+    if (topic_like)
+      filters.push({ topic: { $regex: new RegExp(topic_like, 'i') } });
+
+    filterQuery.$and = filters;
 
     const totalItems =
       await this.PosterModel.countDocuments(filterQuery).exec();
