@@ -8,7 +8,7 @@ export const MemberSchema = new Schema(
       ref: 'Organization',
       required: true,
     },
-    memberActive: { type: Boolean, default: false },
+    memberActive: { type: Boolean, default: true },
     properties: { type: Object, default: {} },
   },
   { timestamps: true },
