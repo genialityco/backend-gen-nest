@@ -120,4 +120,21 @@ export class AgendaService {
   async remove(id: string): Promise<Agenda | null> {
     return this.agendaModel.findByIdAndDelete(id).exec();
   }
+
+  async adjustTimes(id: string, minutes: number): Promise<Agenda | null> {
+    const agenda = await this.agendaModel.findById(id);
+    if (!agenda) return null;
+
+    // Ajustar el tiempo de inicio y fin de cada sesión
+    agenda.sessions.forEach((session) => {
+      session.startDateTime = new Date(
+        session.startDateTime.getTime() + minutes * 60000,
+      );
+      session.endDateTime = new Date(
+        session.endDateTime.getTime() + minutes * 60000,
+      );
+    });
+
+    return agenda.save();
+  }
 }

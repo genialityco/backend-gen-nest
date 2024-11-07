@@ -52,14 +52,13 @@ export class NotificationsController {
   // Envío masivo de notificaciones push
   @Post('send-massive')
   async sendMassiveNotification(@Body() payload: any): Promise<void> {
-    const { expoPushTokens, title, body, data, iconUrl } = payload;
+    const { title, body, data, iconUrl } = payload;
 
-    if (!expoPushTokens || expoPushTokens.length === 0) {
-      throw new Error('No se proporcionaron tokens de notificación.');
-    }
+    // if (!expoPushTokens || expoPushTokens.length === 0) {
+    //   throw new Error('No se proporcionaron tokens de notificación.');
+    // }
 
     await this.notificationsService.sendMassivePushNotifications(
-      expoPushTokens,
       title,
       body,
       data,

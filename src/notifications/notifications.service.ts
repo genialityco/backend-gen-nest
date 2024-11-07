@@ -1,9 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Notification } from './interfaces/notification.interface';
 import { CreateNotificationDto } from './dto/create-notification.dto';
 import axios from 'axios';
+import { User } from 'src/user/interfaces/user.interface';
+import { NotFoundError } from 'rxjs';
 
 @Injectable()
 export class NotificationsService {
@@ -13,11 +15,15 @@ export class NotificationsService {
   private readonly batchSize = 100; // Tamaño de lotes para envíos masivos
 
   constructor(
-    @InjectModel('Notification') private readonly notificationModel: Model<Notification>,
+    @InjectModel('Notification')
+    private readonly notificationModel: Model<Notification>,
+    @InjectModel('User') private userModel: Model<User>,
   ) {}
 
   // Crear una nueva notificación en la base de datos
-  async createNotification(createNotificationDto: CreateNotificationDto): Promise<Notification> {
+  async createNotification(
+    createNotificationDto: CreateNotificationDto,
+  ): Promise<Notification> {
     const newNotification = new this.notificationModel(createNotificationDto);
     return newNotification.save();
   }
@@ -81,19 +87,34 @@ export class NotificationsService {
 
   // Envío masivo de notificaciones push
   async sendMassivePushNotifications(
-    expoPushTokens: string[],
     title: string,
     body: string,
     data: any = {},
     iconUrl?: string,
   ): Promise<void> {
-    const batches = this.chunkArray(expoPushTokens, this.batchSize);
+    try {
+      const usersExpoToken = await this.userModel.find({ expoPushToken: { $exists: true, $ne: null } }).exec();
+      const expoPushTokens = usersExpoToken.map((user) => user.expoPushToken).filter(token => token);
 
-    await Promise.all(
-      batches.map((batch) =>
-        this.sendPushNotificationBatch(batch, title, body, data, iconUrl),
-      ),
-    );
+      if (expoPushTokens.length === 0) {
+        throw new NotFoundError('No se encontraron tokens de notificación.');
+      }
+
+      const batches = this.chunkArray(expoPushTokens, this.batchSize);
+      console.log('Sending notifications in batches:', batches.length);
+
+      await Promise.all(
+        batches.map((batch, index) => {
+          console.log(`Sending batch ${index + 1} with ${batch.length} tokens`);
+          return this.sendPushNotificationBatch(batch, title, body, data, iconUrl);
+        }),
+      );
+
+      console.log('All notifications sent successfully');
+    } catch (error) {
+      console.error('Error sending massive push notifications:', error);
+      throw new InternalServerErrorException('Error sending massive push notifications');
+    }
   }
 
   // Envía un lote de notificaciones push

@@ -9,6 +9,7 @@ import {
   Body,
   Query,
   ValidationPipe,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { AgendaService } from './agenda.service';
 import { CreateAgendaDto } from './dto/create-agenda.dto';
@@ -95,4 +96,16 @@ export class AgendaController {
       ? new ResponseDto('success', 'Agenda eliminada', result)
       : new ResponseDto('error', 'No se pudo eliminar la agenda');
   }
+
+  @Patch(':id/adjust-times')
+  async adjustTimes(
+    @Param('id') id: string,
+    @Body('minutes', ParseIntPipe) minutes: number,
+  ): Promise<ResponseDto<Agenda>> {
+    const result = await this.agendaService.adjustTimes(id, minutes);
+    return result
+      ? new ResponseDto('success', 'Horas ajustadas correctamente', result)
+      : new ResponseDto('error', 'No se pudo ajustar las horas de la agenda');
+  }
+
 }

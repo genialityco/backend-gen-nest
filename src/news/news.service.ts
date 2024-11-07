@@ -86,6 +86,7 @@ export class NewsService {
     const totalItems = await this.newsModel.countDocuments(filterQuery).exec();
     const items = await this.newsModel
       .find(filterQuery)
+      .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
       .exec();
