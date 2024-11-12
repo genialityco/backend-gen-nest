@@ -69,8 +69,19 @@ export class NotificationsService {
       data,
       icon: iconUrl || this.defaultIconUrl,
     };
-
+  
     try {
+      // Crear y guardar la notificación en la base de datos
+      const notificationData: CreateNotificationDto = {
+        userId: data.userId, // Ajusta el campo según tu estructura de datos
+        title,
+        body,
+        data,
+        isRead: false
+      };
+      await this.createNotification(notificationData);
+  
+      // Enviar la notificación push
       const response = await axios.post(this.expoPushUrl, message, {
         headers: {
           Accept: 'application/json',
@@ -78,12 +89,13 @@ export class NotificationsService {
           'Content-Type': 'application/json',
         },
       });
-
+  
       console.log('Notificación enviada correctamente:', response.data);
     } catch (error) {
       console.error('Error al enviar la notificación push:', error);
     }
   }
+  
 
   // Envío masivo de notificaciones push
   async sendMassivePushNotifications(
@@ -95,28 +107,42 @@ export class NotificationsService {
     try {
       const usersExpoToken = await this.userModel.find({ expoPushToken: { $exists: true, $ne: null } }).exec();
       const expoPushTokens = usersExpoToken.map((user) => user.expoPushToken).filter(token => token);
-
+  
       if (expoPushTokens.length === 0) {
         throw new NotFoundError('No se encontraron tokens de notificación.');
       }
-
+  
+      // Guardar la notificación en la base de datos para cada usuario
+      await Promise.all(
+        usersExpoToken.map(async (user) => {
+          const notificationData: CreateNotificationDto = {
+            userId: user._id as string,
+            title,
+            body,
+            data,
+            isRead: false,
+          };
+          await this.createNotification(notificationData);
+        })
+      );
+  
       const batches = this.chunkArray(expoPushTokens, this.batchSize);
       console.log('Sending notifications in batches:', batches.length);
-
+  
       await Promise.all(
         batches.map((batch, index) => {
           console.log(`Sending batch ${index + 1} with ${batch.length} tokens`);
           return this.sendPushNotificationBatch(batch, title, body, data, iconUrl);
         }),
       );
-
+  
       console.log('All notifications sent successfully');
     } catch (error) {
       console.error('Error sending massive push notifications:', error);
       throw new InternalServerErrorException('Error sending massive push notifications');
     }
   }
-
+  
   // Envía un lote de notificaciones push
   private async sendPushNotificationBatch(
     expoPushTokens: string[],
