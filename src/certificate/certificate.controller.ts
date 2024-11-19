@@ -19,6 +19,16 @@ import { ResponseDto } from 'src/common/response.dto';
 export class CertificateController {
   constructor(private readonly certificateService: CertificateService) {}
 
+  @Get('search')
+  async findWithFilters(
+    @Query() query: Partial<Certificate>,
+  ): Promise<ResponseDto<Certificate[]>> {
+    const result = await this.certificateService.findWithFilters(query);
+    return result.length > 0
+      ? new ResponseDto('success', 'Certificados encontrados', result)
+      : new ResponseDto('error', 'No se encontraron certificados');
+  }
+
   @Get()
   async findAll(): Promise<ResponseDto<Certificate[]>> {
     const result = await this.certificateService.findAll();
@@ -33,16 +43,6 @@ export class CertificateController {
     return result
       ? new ResponseDto('success', 'Certificado encontrado', result)
       : new ResponseDto('error', 'No se encontró el certificado');
-  }
-
-  @Get('search')
-  async findWithFilters(
-    @Query() query: Partial<Certificate>,
-  ): Promise<ResponseDto<Certificate[]>> {
-    const result = await this.certificateService.findWithFilters(query);
-    return result.length > 0
-      ? new ResponseDto('success', 'Certificados encontrados', result)
-      : new ResponseDto('error', 'No se encontraron certificados');
   }
 
   @Post()

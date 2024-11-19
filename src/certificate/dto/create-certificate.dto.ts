@@ -1,9 +1,9 @@
-import { IsMongoId, IsNotEmpty, IsObject } from 'class-validator';
+import { IsMongoId, IsNotEmpty, IsArray } from 'class-validator';
 
 export class CreateCertificateDto {
-  @IsObject()
+  @IsArray()
   @IsNotEmpty()
-  readonly elements: Record<string, any>;
+  readonly elements: Record<string, any>[];
 
   @IsMongoId()
   @IsNotEmpty()

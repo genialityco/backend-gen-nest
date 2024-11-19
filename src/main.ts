@@ -3,6 +3,7 @@ import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import * as morgan from 'morgan';
 import * as os from 'os';
+import * as bodyParser from 'body-parser';
 
 // Función para obtener la IP de la red local
 function getLocalNetworkIp() {
@@ -22,6 +23,10 @@ async function bootstrap() {
   app.enableCors();
   app.useGlobalFilters(new HttpExceptionFilter());
   app.use(morgan('combined'));
+
+  // Configura el límite de tamaño de la solicitud
+  app.use(bodyParser.json({ limit: '50mb' }));
+  app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 
   const port = process.env.PORT || 3000;
 

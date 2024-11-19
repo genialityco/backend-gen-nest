@@ -94,7 +94,11 @@ export class AttendeeService {
 
   // Obtener un asistente por ID
   async findOne(id: string): Promise<Attendee | null> {
-    return this.attendeeModel.findById(id).exec();
+    return this.attendeeModel
+      .findById(id)
+      .populate('eventId')
+      .populate('memberId')
+      .exec();
   }
 
   // Eliminar un asistente por ID

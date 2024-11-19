@@ -5,4 +5,6 @@ export interface Attendee extends Document {
   userId?: Types.ObjectId;
   memberId?: Types.ObjectId;
   attended: boolean;
+  certificationHours?: string;
+  typeAttendee?: string;
 }

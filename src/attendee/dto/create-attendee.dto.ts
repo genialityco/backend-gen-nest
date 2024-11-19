@@ -15,4 +15,10 @@ export class CreateAttendeeDto {
 
   @IsOptional()
   readonly attended: boolean;
+
+  @IsOptional()
+  readonly certificationHours: string;
+
+  @IsOptional()
+  readonly typeAttendee: string;
 }

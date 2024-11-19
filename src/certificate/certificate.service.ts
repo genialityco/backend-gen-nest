@@ -21,19 +21,14 @@ export class CertificateService {
     certificateDto: UpdateCertificateDto,
   ): Promise<Certificate | null> {
     return this.certificateModel
-      .findByIdAndUpdate(id, certificateDto, {
-        new: true,
-      })
+      .findByIdAndUpdate(
+        id,
+        { $set: { elements: certificateDto.elements } },
+        { new: true },
+      )
       .exec();
   }
-
-  async findAll(): Promise<Certificate[]> {
-    return this.certificateModel.find().exec();
-  }
-
-  async findOne(id: string): Promise<Certificate | null> {
-    return this.certificateModel.findById(id).exec();
-  }
+  
 
   async findWithFilters(filters: Partial<Certificate>): Promise<Certificate[]> {
     const filterQuery: FilterQuery<Certificate> = {};
@@ -50,6 +45,14 @@ export class CertificateService {
     });
 
     return this.certificateModel.find(filterQuery).exec();
+  }
+
+  async findAll(): Promise<Certificate[]> {
+    return this.certificateModel.find().exec();
+  }
+
+  async findOne(id: string): Promise<Certificate | null> {
+    return this.certificateModel.findById(id).exec();
   }
 
   async remove(id: string): Promise<Certificate | null> {

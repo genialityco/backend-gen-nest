@@ -17,7 +17,9 @@ export const AttendeeSchema = new mongoose.Schema(
       ref: 'Member',
       required: true,
     },
-    attended: { type: Boolean, required: true },
+    attended: { type: Boolean, required: false, default: false },
+    certificationHours: { type: String, required: false },
+    typeAttendee: { type: String, required: false },
   },
   { timestamps: true },
 );
