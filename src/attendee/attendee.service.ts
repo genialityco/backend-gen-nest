@@ -64,13 +64,16 @@ export class AttendeeService {
 
     const filterQuery: FilterQuery<Attendee> = {};
 
+    // Obtén las claves de los campos filtrables excluyendo "page" y "limit"
     const filterableFields = Object.keys(filters).filter(
       (key) => key !== 'page' && key !== 'limit',
     );
 
-    Object.keys(filterableFields).forEach((key) => {
-      const value = filters[key];
+    // Itera directamente sobre filterableFields
+    filterableFields.forEach((key) => {
+      const value = filters[key as keyof Attendee]; // Accede al valor correspondiente
       if (value !== undefined && value !== null) {
+        // Si es un ID, crea un ObjectId
         if (key === 'eventId' || key === 'userId' || key.endsWith('Id')) {
           filterQuery[key] = new Types.ObjectId(value as string);
         } else {
@@ -82,9 +85,10 @@ export class AttendeeService {
     const totalItems = await this.attendeeModel
       .countDocuments(filterQuery)
       .exec();
+
     const items = await this.attendeeModel
       .find(filterQuery)
-      .populate('eventId')
+      .populate('eventId') // Cargar relaciones
       .populate('userId')
       .populate('memberId')
       .skip(skip)
