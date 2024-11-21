@@ -64,7 +64,11 @@ export class AttendeeService {
 
     const filterQuery: FilterQuery<Attendee> = {};
 
-    Object.keys(filters).forEach((key) => {
+    const filterableFields = Object.keys(filters).filter(
+      (key) => key !== 'page' && key !== 'limit',
+    );
+
+    Object.keys(filterableFields).forEach((key) => {
       const value = filters[key];
       if (value !== undefined && value !== null) {
         if (key === 'eventId' || key === 'userId' || key.endsWith('Id')) {
