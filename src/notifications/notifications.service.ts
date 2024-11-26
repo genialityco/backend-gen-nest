@@ -71,6 +71,7 @@ export class NotificationsService {
     };
   
     try {
+
       // Crear y guardar la notificación en la base de datos
       const notificationData: CreateNotificationDto = {
         userId: data.userId, 

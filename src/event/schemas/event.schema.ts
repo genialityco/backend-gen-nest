@@ -9,7 +9,6 @@ export const EventSchema = new mongoose.Schema(
       ref: 'Organization',
       required: true,
     },
-    userProperties: { type: mongoose.Schema.Types.Mixed },
     startDate: { type: Date, required: true },
     endDate: { type: Date, required: true },
     location: {

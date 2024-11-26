@@ -21,9 +21,6 @@ export class CreateEventDto {
   @IsNotEmpty()
   readonly organizationId?: string;
 
-  @IsObject()
-  @IsNotEmpty()
-  readonly userProperties: Record<string, any>;
 
   @IsDate()
   @Type(() => Date)
