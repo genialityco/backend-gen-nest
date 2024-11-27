@@ -8,6 +8,7 @@ import {
   Body,
   Query,
   ValidationPipe,
+  Patch,
 } from '@nestjs/common';
 import { NewsService } from './news.service';
 import { CreateNewsDto } from './dto/create-news.dto';
@@ -72,6 +73,7 @@ export class NewsController {
       : new ResponseDto('error', 'No se pudo crear la noticia');
   }
 
+  @Patch(':id')
   @Put(':id')
   async update(
     @Param('id') id: string,

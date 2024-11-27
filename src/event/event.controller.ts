@@ -8,6 +8,7 @@ import {
   Body,
   Query,
   ValidationPipe,
+  Patch,
 } from '@nestjs/common';
 import { EventService } from './event.service';
 import { CreateEventDto } from './dto/create-event.dto';
@@ -74,6 +75,7 @@ export class EventController {
       : new ResponseDto('error', 'No se pudo crear el evento');
   }
 
+  @Patch(':id')
   @Put(':id')
   async update(
     @Param('id') id: string,
