@@ -6,6 +6,7 @@ import { CreateNotificationDto } from './dto/create-notification.dto';
 import axios from 'axios';
 import { User } from 'src/user/interfaces/user.interface';
 import { NotFoundError } from 'rxjs';
+import { NotificationTemplate } from 'src/notification-template/interfaces/notification-template.interface';
 
 @Injectable()
 export class NotificationsService {
@@ -18,6 +19,8 @@ export class NotificationsService {
     @InjectModel('Notification')
     private readonly notificationModel: Model<Notification>,
     @InjectModel('User') private userModel: Model<User>,
+    @InjectModel('NotificationTemplate')
+    private notificationTemplateModel: Model<NotificationTemplate>,
   ) {}
 
   // Crear una nueva notificación en la base de datos
@@ -69,19 +72,18 @@ export class NotificationsService {
       data,
       icon: iconUrl || this.defaultIconUrl,
     };
-  
-    try {
 
+    try {
       // Crear y guardar la notificación en la base de datos
       const notificationData: CreateNotificationDto = {
-        userId: data.userId, 
+        userId: data.userId,
         title,
         body,
         data,
-        isRead: false
+        isRead: false,
       };
       await this.createNotification(notificationData);
-  
+
       // Enviar la notificación push
       const response = await axios.post(this.expoPushUrl, message, {
         headers: {
@@ -90,13 +92,12 @@ export class NotificationsService {
           'Content-Type': 'application/json',
         },
       });
-  
+
       console.log('Notificación enviada correctamente:', response.data);
     } catch (error) {
       console.error('Error al enviar la notificación push:', error);
     }
   }
-  
 
   // Envío masivo de notificaciones push
   async sendMassivePushNotifications(
@@ -106,13 +107,17 @@ export class NotificationsService {
     iconUrl?: string,
   ): Promise<void> {
     try {
-      const usersExpoToken = await this.userModel.find({ expoPushToken: { $exists: true, $ne: null } }).exec();
-      const expoPushTokens = usersExpoToken.map((user) => user.expoPushToken).filter(token => token);
-  
+      const usersExpoToken = await this.userModel
+        .find({ expoPushToken: { $exists: true, $ne: null } })
+        .exec();
+      const expoPushTokens = usersExpoToken
+        .map((user) => user.expoPushToken)
+        .filter((token) => token);
+
       if (expoPushTokens.length === 0) {
         throw new NotFoundError('No se encontraron tokens de notificación.');
       }
-  
+
       // Guardar la notificación en la base de datos para cada usuario
       await Promise.all(
         usersExpoToken.map(async (user) => {
@@ -124,26 +129,59 @@ export class NotificationsService {
             isRead: false,
           };
           await this.createNotification(notificationData);
-        })
+        }),
       );
-  
+
       const batches = this.chunkArray(expoPushTokens, this.batchSize);
       console.log('Sending notifications in batches:', batches.length);
-  
+
       await Promise.all(
         batches.map((batch, index) => {
           console.log(`Sending batch ${index + 1} with ${batch.length} tokens`);
-          return this.sendPushNotificationBatch(batch, title, body, data, iconUrl);
+          return this.sendPushNotificationBatch(
+            batch,
+            title,
+            body,
+            data,
+            iconUrl,
+          );
         }),
       );
-  
+
       console.log('All notifications sent successfully');
     } catch (error) {
       console.error('Error sending massive push notifications:', error);
-      throw new InternalServerErrorException('Error sending massive push notifications');
+      throw new InternalServerErrorException(
+        'Error sending massive push notifications',
+      );
     }
   }
-  
+
+  async sendFromTemplate(templateId: string): Promise<any> {
+    const template = await this.notificationTemplateModel.findById(templateId);
+    if (!template) {
+      throw new NotFoundError('Template not found');
+    }
+
+    const { title, body, data } = template;
+
+    // Enviar notificaciones masivas utilizando el servicio existente
+    const totalSent = await this.sendPushNotification(
+      "ExponentPushToken[_g4P3PCYK5upzQP-hJ7ejB]",
+      title,
+      body,
+      data,
+    );
+
+    // Actualizar el campo `totalSent` en el template
+    await this.notificationTemplateModel.findByIdAndUpdate(templateId, {
+      totalSent,
+      isSent: true, // Marcar como enviado
+    });
+
+    return { message: 'Notifications sent successfully', totalSent };
+  }
+
   // Envía un lote de notificaciones push
   private async sendPushNotificationBatch(
     expoPushTokens: string[],

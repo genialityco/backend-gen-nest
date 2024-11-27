@@ -65,4 +65,11 @@ export class NotificationsController {
       iconUrl,
     );
   }
+
+  @Post('send-from-template/:templateId')
+  async sendFromTemplate(
+    @Param('templateId') templateId: string,
+  ): Promise<any> {
+    return this.notificationsService.sendFromTemplate(templateId);
+  }
 }
