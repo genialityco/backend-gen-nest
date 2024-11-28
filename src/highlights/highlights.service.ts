@@ -77,6 +77,7 @@ export class HighlightsService {
       .exec();
     const items = await this.highlightModel
       .find(filterQuery)
+      .populate('eventId')
       .skip(skip)
       .limit(limit)
       .exec();
