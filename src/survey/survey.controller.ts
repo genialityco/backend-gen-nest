@@ -58,6 +58,7 @@ export class SurveyController {
       : new ResponseDto('error', 'Survey could not be created');
   }
 
+  @Patch(':id')
   @Put(':id')
   async update(
     @Param('id') id: string,
