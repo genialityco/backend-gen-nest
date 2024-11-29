@@ -37,7 +37,7 @@ export class HighlightsService {
     totalPages: number;
     currentPage: number;
   }> {
-    const { page = 1, limit = 10 } = paginationDto;
+    const { page = 1, limit = 50 } = paginationDto;
     const skip = (page - 1) * limit;
 
     const totalItems = await this.highlightModel.countDocuments().exec();
@@ -61,7 +61,7 @@ export class HighlightsService {
     totalPages: number;
     currentPage: number;
   }> {
-    const { page = 1, limit = 10 } = paginationDto;
+    const { page = 1, limit = 50 } = paginationDto;
     const skip = (page - 1) * limit;
 
     const filterQuery: FilterQuery<Highlight> = {};
