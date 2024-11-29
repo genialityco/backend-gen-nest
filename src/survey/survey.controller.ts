@@ -8,6 +8,7 @@ import {
   Body,
   Query,
   ValidationPipe,
+  Patch,
 } from '@nestjs/common';
 import { SurveyService } from './survey.service';
 import { CreateSurveyDto } from './dto/create-survey.dto';
