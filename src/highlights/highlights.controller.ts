@@ -8,6 +8,7 @@ import {
   Body,
   Query,
   ValidationPipe,
+  Patch,
 } from '@nestjs/common';
 import { HighlightsService } from './highlights.service';
 import { CreateHighlightDto } from './dto/create-highlight.dto';
@@ -74,6 +75,7 @@ export class HighlightsController {
       : new ResponseDto('error', 'No se pudo crear el highlight');
   }
 
+  @Patch(':id')
   @Put(':id')
   async update(
     @Param('id') id: string,
