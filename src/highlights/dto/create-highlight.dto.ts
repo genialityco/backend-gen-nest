@@ -25,4 +25,8 @@ export class CreateHighlightDto {
   @IsString()
   @IsNotEmpty()
   readonly vimeoUrl: string;
+
+  @IsString()
+  @IsNotEmpty()
+  readonly transcription: string;
 }

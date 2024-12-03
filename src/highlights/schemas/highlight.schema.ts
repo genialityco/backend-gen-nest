@@ -8,6 +8,7 @@ export const HighlightSchema = new Schema(
     description: { type: String, required: true },
     imageUrl: { type: String, required: true },
     vimeoUrl: { type: String, required: true },
+    transcription: { type: String, required: true}
   },
   { timestamps: true },
 );
