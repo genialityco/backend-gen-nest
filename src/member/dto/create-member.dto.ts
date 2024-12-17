@@ -2,7 +2,7 @@ import { IsBoolean, IsMongoId, IsNotEmpty, IsObject, IsOptional } from 'class-va
 
 export class CreateMemberDto {
   @IsMongoId()
-  @IsNotEmpty()
+  @IsOptional()
   readonly userId: string;
 
   @IsMongoId()
