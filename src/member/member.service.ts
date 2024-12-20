@@ -55,11 +55,16 @@ export class MemberService {
   }> {
     const { page = 1, limit = 10 } = paginationDto;
     const skip = (page - 1) * limit;
-
+  
     const filterQuery: FilterQuery<Member> = {};
-
-    Object.keys(filters).forEach((key) => {
-      const value = filters[key];
+  
+    // Excluir los campos de paginación de los filtros
+    const validFilters = Object.keys(filters).filter(
+      (key) => key !== 'page' && key !== 'limit'
+    );
+  
+    validFilters.forEach((key) => {
+      const value = filters[key as keyof Member];
       if (value !== undefined && value !== null) {
         if (
           key === 'organizationId' ||
@@ -74,19 +79,18 @@ export class MemberService {
         }
       }
     });
-
-    const totalItems = await this.memberModel
-      .countDocuments(filterQuery)
-      .exec();
+  
+    const totalItems = await this.memberModel.countDocuments(filterQuery).exec();
     const items = await this.memberModel
       .find(filterQuery)
       .skip(skip)
       .limit(limit)
       .exec();
     const totalPages = Math.ceil(totalItems / limit);
-
+  
     return { items, totalItems, totalPages, currentPage: page };
   }
+  
 
   // Obtener un miembro por ID
   async findOne(id: string): Promise<Member | null> {
