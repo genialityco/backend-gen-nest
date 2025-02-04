@@ -18,4 +18,6 @@ export interface EventInterface extends Document {
   readonly createdAt: Date;
   readonly updatedAt: Date;
   readonly price?: number;
+  readonly isExternalRegistration: boolean;
+  readonly externalRegistrationUrl: string;
 }

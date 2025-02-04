@@ -52,4 +52,10 @@ export class CreateEventDto {
 
   @IsOptional()
   readonly price?: number;
+  
+  @IsOptional()
+  readonly isExternalRegistration?: boolean;
+
+  @IsOptional()
+  readonly externalRegistrationUrl?: string;
 }

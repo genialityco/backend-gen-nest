@@ -38,6 +38,15 @@ export const EventSchema = new mongoose.Schema(
         posters: true,
       },
     },
+    isExternalRegistration: {
+      type: Boolean,
+      required: false,
+      default: false,
+    },
+    externalRegistrationUrl: {
+      type: String,
+      required: false,
+    },
   },
   { timestamps: true },
 );
