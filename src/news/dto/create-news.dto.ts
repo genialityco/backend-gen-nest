@@ -15,5 +15,9 @@ export class CreateNewsDto {
 
   @IsString()
   @IsOptional()
+  readonly eventId: Types.ObjectId;
+
+  @IsString()
+  @IsOptional()
   readonly featuredImage?: string;
 }

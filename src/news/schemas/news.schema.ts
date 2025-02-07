@@ -9,6 +9,11 @@ export const NewsSchema = new Schema(
       ref: 'Organization',
       required: true,
     },
+    eventId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Event',
+      required: false, 
+    },
     featuredImage: { type: String, required: false },
   },
   { timestamps: true },

@@ -4,6 +4,7 @@ export interface News extends Document {
   readonly title: string;
   readonly content: string;
   organizationId: Types.ObjectId;
+  eventId: Types.ObjectId;
   readonly featuredImage?: string;
   readonly createdAt: Date;
   readonly updatedAt: Date;
