@@ -166,8 +166,7 @@ export class NotificationsService {
     const { title, body, data } = template;
 
     // Enviar notificaciones masivas utilizando el servicio existente
-    const totalSent = await this.sendPushNotification(
-      "ExponentPushToken[_g4P3PCYK5upzQP-hJ7ejB]",
+    const totalSent = await this.sendMassivePushNotifications(
       title,
       body,
       data,
