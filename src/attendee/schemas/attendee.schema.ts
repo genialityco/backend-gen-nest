@@ -20,6 +20,7 @@ export const AttendeeSchema = new mongoose.Schema(
     attended: { type: Boolean, required: false, default: false },
     certificationHours: { type: String, required: false },
     typeAttendee: { type: String, required: false },
+    certificateDownloads: {type: Number, required: false},
   },
   { timestamps: true },
 );

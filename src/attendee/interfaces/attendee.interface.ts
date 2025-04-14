@@ -7,4 +7,5 @@ export interface Attendee extends Document {
   attended: boolean;
   certificationHours?: string;
   typeAttendee?: string;
+  certificateDownloads?: number;
 }

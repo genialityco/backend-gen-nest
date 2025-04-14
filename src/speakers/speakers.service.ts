@@ -22,7 +22,7 @@ export class SpeakersService {
     totalPages: number;
     currentPage: number;
   }> {
-    const { page = 1, limit = 10, _start, _end } = paginationDto;
+    const { page = 1, limit = 200, _start, _end } = paginationDto;
     let skip = 0;
     let howmany = limit;
     let resultpage = page;

@@ -74,6 +74,25 @@ export class AttendeeController {
       : new ResponseDto('error', 'No se pudo crear el asistente');
   }
 
+  @Put('certificate-download')
+  async incrementCertificateDownloads(
+    @Body('userId') userId: string,
+    @Body('memberId') memberId: string,
+  ): Promise<ResponseDto<Attendee>> {
+    try {
+      const result = await this.attendeeService.incrementCertificateDownloads({
+        userId,
+        memberId,
+      });
+
+      return result
+        ? new ResponseDto('success', 'Descarga registrada', result)
+        : new ResponseDto('error', 'No se encontró el asistente');
+    } catch (error) {
+      return new ResponseDto('error', error.message);
+    }
+  }
+
   @Put(':id')
   async update(
     @Param('id') id: string,

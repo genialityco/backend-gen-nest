@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { FilterQuery, Model, Types } from 'mongoose';
+import { FilterQuery, isValidObjectId, Model, Types } from 'mongoose';
 import { Attendee } from './interfaces/attendee.interface';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { CreateAttendeeDto } from './dto/create-attendee.dto';
@@ -112,5 +112,34 @@ export class AttendeeService {
   // Eliminar un asistente por ID
   async remove(id: string): Promise<Attendee | null> {
     return this.attendeeModel.findByIdAndDelete(id).exec();
+  }
+
+  // Incrementar descargas del certificado por usuario
+  // attendee.service.ts
+
+  async incrementCertificateDownloads({
+    userId,
+    memberId,
+  }: {
+    userId?: string;
+    memberId?: string;
+  }): Promise<Attendee | null> {
+    const filter: FilterQuery<Attendee> = {};
+  
+    if (userId && isValidObjectId(userId)) {
+      filter.userId = new Types.ObjectId(userId);
+    } else if (memberId && isValidObjectId(memberId)) {
+      filter.memberId = new Types.ObjectId(memberId);
+    } else {
+      throw new Error('Debe proporcionar un userId o memberId válido');
+    }
+  
+    return this.attendeeModel
+      .findOneAndUpdate(
+        filter,
+        { $inc: { certificateDownloads: 1 } },
+        { new: true },
+      )
+      .exec();
   }
 }

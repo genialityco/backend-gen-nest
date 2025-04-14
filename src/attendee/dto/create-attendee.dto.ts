@@ -21,4 +21,7 @@ export class CreateAttendeeDto {
 
   @IsOptional()
   readonly typeAttendee: string;
+
+  @IsOptional()
+  readonly certificateDownloads: number;
 }
