@@ -10,14 +10,16 @@ import { UpdateNewsDto } from './dto/update-news.dto';
 export class NewsService {
   constructor(@InjectModel('News') private newsModel: Model<News>) {}
 
-  // Crear una nueva noticia
+  // Crear una nueva noticia (soporta documentos adjuntos)
   async create(createNewsDto: CreateNewsDto): Promise<News> {
+    // createNewsDto.documents debe ser un array de objetos { id, name, type, url } si se provee
     const newNews = new this.newsModel(createNewsDto);
     return newNews.save();
   }
 
-  // Actualizar una noticia por ID
+  // Actualizar una noticia por ID (soporta documentos adjuntos)
   async update(id: string, updateNewsDto: UpdateNewsDto): Promise<News | null> {
+    // updateNewsDto.documents debe ser un array de objetos { id, name, type, url } si se provee
     return this.newsModel
       .findByIdAndUpdate(id, updateNewsDto, {
         new: true,

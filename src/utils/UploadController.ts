@@ -20,7 +20,7 @@ export class UploadController {
       throw new BadRequestException('No file uploaded');
     }
 
-    const bucket = this.firebaseAdminService.getStorage().bucket();
+    const bucket = this.firebaseAdminService.getStorage().bucket('global-auth-49737.appspot.com');
     const blob = bucket.file('Y' + Date.now() + '-' + file.originalname);
 
     await blob.save(file.buffer, {
@@ -34,6 +34,29 @@ export class UploadController {
       // Get public URL
       const publicUrl = `https://storage.googleapis.com/${bucket.name}/${blob.name}`;
       resolve({ imageUrl: publicUrl });
+    });
+  }
+
+  @Post('document')
+  @UseInterceptors(FileInterceptor('file', { storage: memoryStorage() }))
+  async uploadDocument(@UploadedFile() file: Express.Multer.File) {
+    if (!file) {
+      throw new BadRequestException('No file uploaded');
+    }
+
+    const bucket = this.firebaseAdminService.getStorage().bucket('global-auth-49737.appspot.com');
+    const blob = bucket.file('D' + Date.now() + '-' + file.originalname);
+
+    await blob.save(file.buffer, {
+      contentType: file.mimetype,
+      gzip: true,
+    });
+
+    await blob.makePublic();
+
+    return new Promise((resolve, reject) => {
+      const publicUrl = `https://storage.googleapis.com/${bucket.name}/${blob.name}`;
+      resolve({ documentUrl: publicUrl });
     });
   }
 }

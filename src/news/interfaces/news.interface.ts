@@ -8,4 +8,10 @@ export interface News extends Document {
   readonly featuredImage?: string;
   readonly createdAt: Date;
   readonly updatedAt: Date;
+  documents?: {
+    id: string;
+    name: string;
+    type: string;
+    url: string;
+  }[];
 }

@@ -12,9 +12,17 @@ export const NewsSchema = new Schema(
     eventId: {
       type: Schema.Types.ObjectId,
       ref: 'Event',
-      required: false, 
+      required: false,
     },
     featuredImage: { type: String, required: false },
+    documents: [
+      {
+        id: { type: String, required: true },
+        name: { type: String, required: true },
+        type: { type: String, required: true },
+        url: { type: String, required: true },
+      },
+    ],
   },
   { timestamps: true },
 );
