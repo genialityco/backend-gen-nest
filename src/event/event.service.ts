@@ -35,7 +35,7 @@ export class EventService {
     totalPages: number;
     currentPage: number;
   }> {
-    const { page = 1, limit = 10 } = paginationDto;
+    const { page = 1, limit = 100 } = paginationDto;
     const skip = (page - 1) * limit;
 
     const totalItems = await this.EventModel.countDocuments().exec();
@@ -55,7 +55,7 @@ export class EventService {
     totalPages: number;
     currentPage: number;
   }> {
-    const { page = 1, limit = 10 } = paginationDto;
+    const { page = 1, limit = 100 } = paginationDto;
     const skip = (page - 1) * limit;
 
     const filterQuery: FilterQuery<EventInterface> = {};
