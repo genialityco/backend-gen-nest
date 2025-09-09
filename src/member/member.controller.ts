@@ -33,7 +33,6 @@ export class MemberController {
     }>
   > {
     const result = await this.memberService.findWithFilters(
-      query,
       paginationDto,
     );
     return result.items.length > 0
@@ -50,18 +49,25 @@ export class MemberController {
   }
 
   @Get()
-  async findAll(@Query() paginationDto: PaginationDto): Promise<
-    ResponseDto<{
-      items: Member[];
-      totalItems: number;
-      totalPages: number;
-      currentPage: number;
-    }>
-  > {
-    const result = await this.memberService.findAll(paginationDto);
-    return result.items.length > 0
-      ? new ResponseDto('success', 'Miembros encontrados', result)
-      : new ResponseDto('error', 'No se encontraron miembros');
+  async findAll(
+    @Query() paginationDto: PaginationDto,
+  ) {
+    console.log('📥 Query params recibidos:', paginationDto); // Debug
+    
+    const result = await this.memberService.findWithFilters(
+     
+      paginationDto,
+      
+    );
+
+    return {
+      data: {
+        items: result.items,
+        totalItems: result.totalItems,
+        totalPages: result.totalPages,
+        currentPage: result.currentPage,
+      }
+    };
   }
 
   @Post()

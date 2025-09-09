@@ -1,10 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, FilterQuery, Types } from 'mongoose';
+import { Model, } from 'mongoose';
 import { Agenda } from './interfaces/agenda.interface';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { CreateAgendaDto } from './dto/create-agenda.dto';
 import { UpdateAgendaDto } from './dto/update-agenda.dto';
+import { findWithFilters } from 'src/common/common.service';
 
 @Injectable()
 export class AgendaService {
@@ -62,58 +63,20 @@ export class AgendaService {
 
   // Buscar agendas con filtros y paginación
   async findWithFilters(
-    filters: FilterQuery<Agenda>,
     paginationDto: PaginationDto,
+    
   ): Promise<{
     items: Agenda[];
     totalItems: number;
     totalPages: number;
     currentPage: number;
   }> {
-    const { page = 1, limit = 10 } = paginationDto;
-    const skip = (page - 1) * limit;
-
-    const filterQuery: FilterQuery<Agenda> = {};
-
-    // Construimos la consulta en base a los filtros proporcionados
-    const filterableFields = Object.keys(filters);
-    filterableFields.forEach((key) => {
-      const value = filters[key];
-
-      if (value !== undefined && value !== null) {
-        // Convertimos claves que son IDs
-        if (key.endsWith('Id') || key === 'eventId') {
-          filterQuery[key] = new Types.ObjectId(value as string);
-        }
-        // Búsqueda parcial para strings
-        else if (typeof value === 'string') {
-          filterQuery[key] = { $regex: new RegExp(value, 'i') };
-        }
-        // Si es un objeto, lo pasamos directamente (ej. rango de fechas)
-        else if (typeof value === 'object') {
-          filterQuery[key] = value;
-        }
-        // Para otros tipos de datos, asignamos el valor directamente
-        else {
-          filterQuery[key] = value;
-        }
-      }
-    });
-
-    const totalItems = await this.agendaModel
-      .countDocuments(filterQuery)
-      .exec();
-    const items = await this.agendaModel
-      .find(filterQuery)
-      .populate('eventId')
-      .populate('sessions.speakers')
-      .populate('sessions.moduleId')
-      .skip(skip)
-      .limit(limit)
-      .exec();
-
-    const totalPages = Math.ceil(totalItems / limit);
-    return { items, totalItems, totalPages, currentPage: page };
+   return findWithFilters<Agenda>(
+      this.agendaModel,
+      paginationDto,
+      paginationDto.filters,
+      ['eventId']
+    );
   }
 
   // Eliminar una agenda por ID

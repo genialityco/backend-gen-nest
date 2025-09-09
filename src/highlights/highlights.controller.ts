@@ -34,7 +34,6 @@ export class HighlightsController {
     }>
   > {
     const result = await this.highlightsService.findWithFilters(
-      query,
       paginationDto,
     );
     return result.items.length > 0
@@ -51,18 +50,25 @@ export class HighlightsController {
   }
 
   @Get()
-  async findAll(@Query() paginationDto: PaginationDto): Promise<
-    ResponseDto<{
-      items: Highlight[];
-      totalItems: number;
-      totalPages: number;
-      currentPage: number;
-    }>
-  > {
-    const result = await this.highlightsService.findAll(paginationDto);
-    return result.items.length > 0
-      ? new ResponseDto('success', 'Highlights encontrados', result)
-      : new ResponseDto('error', 'No se encontraron highlights');
+  async findAll(
+    @Query() paginationDto: PaginationDto,
+  ) {
+    console.log('📥 Query params recibidos:', paginationDto); // Debug
+    
+    const result = await this.highlightsService.findWithFilters(
+     
+      paginationDto,
+      
+    );
+
+    return {
+      data: {
+        items: result.items,
+        totalItems: result.totalItems,
+        totalPages: result.totalPages,
+        currentPage: result.currentPage,
+      }
+    };
   }
 
   @Post()

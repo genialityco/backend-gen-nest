@@ -1,10 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, FilterQuery } from 'mongoose';
+import { Model } from 'mongoose';
 import { Highlight } from './interfaces/highlight.interface';
 import { CreateHighlightDto } from './dto/create-highlight.dto';
 import { UpdateHighlightDto } from './dto/update-highlight.dto';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
+import { findWithFilters } from 'src/common/common.service';
 
 @Injectable()
 export class HighlightsService {
@@ -53,7 +54,6 @@ export class HighlightsService {
 
   // Buscar highlights con filtros y paginación
   async findWithFilters(
-    filters: Partial<Highlight>,
     paginationDto: PaginationDto,
   ): Promise<{
     items: Highlight[];
@@ -61,30 +61,12 @@ export class HighlightsService {
     totalPages: number;
     currentPage: number;
   }> {
-    const { page = 1, limit = 50 } = paginationDto;
-    const skip = (page - 1) * limit;
-
-    const filterQuery: FilterQuery<Highlight> = {};
-
-    Object.keys(filters).forEach((key) => {
-      if (filters[key]) {
-        filterQuery[key] = filters[key];
-      }
-    });
-
-    const totalItems = await this.highlightModel
-      .countDocuments(filterQuery)
-      .exec();
-    const items = await this.highlightModel
-      .find(filterQuery)
-      .populate('eventId')
-      .skip(skip)
-      .limit(limit)
-      .exec();
-
-    const totalPages = Math.ceil(totalItems / limit);
-
-    return { items, totalItems, totalPages, currentPage: page };
+   return findWithFilters<Highlight>(
+              this.highlightModel,
+              paginationDto,
+              paginationDto.filters
+              ['eventId']
+            );
   }
 
   // Obtener un highlight por ID

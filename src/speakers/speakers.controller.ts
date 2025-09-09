@@ -28,7 +28,7 @@ export class SpeakersController {
     @Query() paginationDto: PaginationDto,
   ): Promise<ResponseDto<any>> {
     const result = await this.speakersService.findWithFilters(
-      filters,
+ 
       paginationDto,
     );
     return new ResponseDto('success', 'Speakers encontrados', result);
@@ -44,18 +44,24 @@ export class SpeakersController {
 
   @Get()
   async findAll(
-    @Res ({ passthrough: true }) res: Response,
     @Query() paginationDto: PaginationDto,
-    @Query('names_like') names_like:string,
-  ): Promise<ResponseDto<any>> {
-
+  ) {
+    console.log('📥 Query params recibidos:', paginationDto); // Debug
     
-    const result = await this.speakersService.findAll(paginationDto,names_like);
-    res.header('x-total-count',result.totalItems.toString());
-    res.header('access-control-expose-headers','x-total-count');
+    const result = await this.speakersService.findWithFilters(
+     
+      paginationDto,
+      
+    );
 
-
-    return new ResponseDto('success', 'Speakers encontrados', result);
+    return {
+      data: {
+        items: result.items,
+        totalItems: result.totalItems,
+        totalPages: result.totalPages,
+        currentPage: result.currentPage,
+      }
+    };
   }
 
   @Post()

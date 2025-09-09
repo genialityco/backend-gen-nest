@@ -34,7 +34,7 @@ export class EventController {
     }>
   > {
     const result = await this.eventService.findWithFilters(
-      query,
+    
       paginationDto,
     );
     return result.items.length > 0
@@ -51,18 +51,26 @@ export class EventController {
   }
 
   @Get()
-  async findAll(@Query() paginationDto: PaginationDto): Promise<
-    ResponseDto<{
-      items: EventInterface[];
-      totalItems: number;
-      totalPages: number;
-      currentPage: number;
-    }>
-  > {
-    const result = await this.eventService.findAll(paginationDto);
-    return result.items.length > 0
-      ? new ResponseDto('success', 'Eventos encontrados', result)
-      : new ResponseDto('error', 'No se encontraron eventos');
+  async findAll(
+  
+    @Query() paginationDto: PaginationDto,
+  ) {
+    console.log('📥 Query params recibidos:', paginationDto); // Debug
+    
+    const result = await this.eventService.findWithFilters(
+     
+      paginationDto,
+      
+    );
+
+    return {
+      data: {
+        items: result.items,
+        totalItems: result.totalItems,
+        totalPages: result.totalPages,
+        currentPage: result.currentPage,
+      }
+    };
   }
 
   @Post()

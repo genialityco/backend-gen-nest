@@ -5,6 +5,7 @@ import { FilterQuery, Model, Types } from 'mongoose';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { CreatePosterDto } from './dto/create-poster.dto';
 import { UpdatePosterDto } from './dto/update-poster.dto';
+import { findWithFilters } from 'src/common/common.service';
 
 @Injectable()
 export class PostersService {
@@ -80,7 +81,6 @@ export class PostersService {
 
   // Buscar posters con filtros y paginación
   async findWithFilters(
-    filters: Partial<Poster & { search?: string }>,
     paginationDto: PaginationDto,
   ): Promise<{
     items: Poster[];
@@ -88,58 +88,11 @@ export class PostersService {
     totalPages: number;
     currentPage: number;
   }> {
-    const { page = 1, limit = 300 } = paginationDto;
-    const skip = (page - 1) * limit;
-
-    const filterQuery: FilterQuery<Poster> = {};
-
-    const filterableFields = Object.keys(filters).filter(
-      (key) => key !== 'page' && key !== 'limit',
-    );
-
-    // Si hay un término de búsqueda general
-    if (filters.search) {
-      const searchTerm = filters.search as string;
-      filterQuery.$or = [
-        { title: { $regex: new RegExp(searchTerm, 'i') } },
-        { authors: { $regex: new RegExp(searchTerm, 'i') } },
-        { category: { $regex: new RegExp(searchTerm, 'i') } },
-        { topic: { $regex: new RegExp(searchTerm, 'i') } },
-        { institution: { $regex: new RegExp(searchTerm, 'i') } },
-      ];
-    }
-
-    // Si hay un filtro por eventId o cualquier otro filtro específico
-    filterableFields.forEach((key) => {
-      if (filters[key] && key !== 'search') {
-        if (key === 'eventId') {
-          filterQuery[key] = new Types.ObjectId(filters[key]);
-        } else if (key === 'voters') {
-          // Filtrar por un userId específico en el campo voters
-          filterQuery[key] = {
-            $in: [new Types.ObjectId(filters[key] as unknown as string)],
-          };
-        } else if (typeof filters[key] === 'string') {
-          filterQuery[key] = { $regex: new RegExp(filters[key], 'i') };
-        } else {
-          filterQuery[key] = filters[key];
-        }
-      }
-    });
-
-    // Primero filtramos por los criterios globales
-    const totalItems =
-      await this.PosterModel.countDocuments(filterQuery).exec();
-
-    // Luego aplicamos paginación a los resultados
-    const items = await this.PosterModel.find(filterQuery)
-      .skip(skip)
-      .limit(limit)
-      .exec();
-
-    const totalPages = Math.ceil(totalItems / limit);
-
-    return { items, totalItems, totalPages, currentPage: page };
+    return findWithFilters<Poster>(
+       this.PosterModel,
+       paginationDto,
+       paginationDto.filters
+     );
   }
 
   // Obtener un poster por ID

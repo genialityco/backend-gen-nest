@@ -33,7 +33,7 @@ export class NewsController {
       currentPage: number;
     }>
   > {
-    const result = await this.newsService.findWithFilters(query, paginationDto);
+    const result = await this.newsService.findWithFilters(paginationDto);
 
     return result.items.length > 0
       ? new ResponseDto('success', 'Noticias encontradas', result)
@@ -49,18 +49,25 @@ export class NewsController {
   }
 
   @Get()
-  async findAll(@Query() paginationDto: PaginationDto): Promise<
-    ResponseDto<{
-      items: News[];
-      totalItems: number;
-      totalPages: number;
-      currentPage: number;
-    }>
-  > {
-    const result = await this.newsService.findAll(paginationDto);
-    return result.items.length > 0
-      ? new ResponseDto('success', 'Noticias encontradas', result)
-      : new ResponseDto('error', 'No se encontraron noticias');
+  async findAll(
+    @Query() paginationDto: PaginationDto,
+  ) {
+    console.log('📥 Query params recibidos:', paginationDto); // Debug
+    
+    const result = await this.newsService.findWithFilters(
+     
+      paginationDto,
+      
+    );
+
+    return {
+      data: {
+        items: result.items,
+        totalItems: result.totalItems,
+        totalPages: result.totalPages,
+        currentPage: result.currentPage,
+      }
+    };
   }
 
   @Post()

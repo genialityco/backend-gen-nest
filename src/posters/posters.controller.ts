@@ -38,7 +38,7 @@ export class PostersController {
     }>
   > {
     const result = await this.postersService.findWithFilters(
-      query,
+
       paginationDto,
     );
 
@@ -58,32 +58,25 @@ export class PostersController {
   @Get()
   
   async findAll( 
-    @Res ({ passthrough: true }) res: Response,
+   
     @Query() paginationDto: PaginationDto,
-    @Query('title_like') title_like:string,
-    @Query('category_like') category_like:string,
-    @Query('authors_like') authors_like:string,
-    @Query('topic_like') topic_like:string,
-
-  )
+  ) {
+    console.log('📥 Query params recibidos:', paginationDto); // Debug
     
-    : Promise<
-    ResponseDto<{
-      items: Poster[];
-      totalItems: number;
-      totalPages: number;
-      currentPage: number;
-    }>
-  > {
-    console.log('title_like',title_like);
-    const result = await this.postersService.findAll(paginationDto,title_like, category_like,authors_like,topic_like);
+    const result = await this.postersService.findWithFilters(
+     
+      paginationDto,
+      
+    );
 
-    res.header('x-total-count',result.totalItems.toString());
-    res.header('access-control-expose-headers','x-total-count');
- 
-    return result.items.length > 0
-      ? new ResponseDto('success', 'Posters encontrados', result)
-      : new ResponseDto('error', 'No se encontraron posters');
+    return {
+      data: {
+        items: result.items,
+        totalItems: result.totalItems,
+        totalPages: result.totalPages,
+        currentPage: result.currentPage,
+      }
+    };
   }
 
   

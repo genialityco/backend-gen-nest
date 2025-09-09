@@ -1,10 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { EventInterface } from './interfaces/event.interface';
-import { FilterQuery, Model, Types } from 'mongoose';
+import { Model } from 'mongoose';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
+import { findWithFilters } from 'src/common/common.service';
 
 @Injectable()
 export class EventService {
@@ -47,47 +48,21 @@ export class EventService {
 
   // Buscar eventos con filtros y paginación
   async findWithFilters(
-    filters: Partial<EventInterface>,
+   
     paginationDto: PaginationDto,
+    
   ): Promise<{
-    items: EventInterface[];
+    items: any[];
     totalItems: number;
     totalPages: number;
     currentPage: number;
   }> {
-    const { page = 1, limit = 100 } = paginationDto;
-    const skip = (page - 1) * limit;
-
-    const filterQuery: FilterQuery<EventInterface> = {};
-
-    // Filtrar solo los campos que no sean 'page' o 'limit'
-    const filterableFields = Object.keys(filters).filter(
-      (key) => key !== 'page' && key !== 'limit',
-    );
-
-    filterableFields.forEach((key) => {
-      if (filters[key]) {
-        if (key === 'organizationId') {
-          filterQuery[key] = new Types.ObjectId(filters[key]);
-        } else if (typeof filters[key] === 'string') {
-          filterQuery[key] = { $regex: new RegExp(filters[key], 'i') };
-        } else {
-          filterQuery[key] = filters[key];
-        }
-      }
-    });
-
-    // Aplicar la paginación después de construir el query
-    const totalItems = await this.EventModel.countDocuments(filterQuery).exec();
-    const items = await this.EventModel.find(filterQuery)
-      .skip(skip)
-      .limit(limit)
-      .exec();
-
-    const totalPages = Math.ceil(totalItems / limit);
-
-    return { items, totalItems, totalPages, currentPage: page };
-  }
+    return findWithFilters<EventInterface>(
+    this.EventModel,
+    paginationDto,
+    paginationDto.filters
+  );
+}
 
   // Obtener un evento por ID
   async findOne(id: string): Promise<EventInterface | null> {

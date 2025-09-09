@@ -1,8 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, FilterQuery, Types } from 'mongoose';
+import { Model, FilterQuery } from 'mongoose';
 import { Speaker } from './interfaces/speakers.interface';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
+import { findWithFilters } from 'src/common/common.service';
 
 @Injectable()
 export class SpeakersService {
@@ -61,7 +62,6 @@ export class SpeakersService {
   }
 
   async findWithFilters(
-    filters: Partial<Speaker>,
     paginationDto: PaginationDto,
   ): Promise<{
     items: Speaker[];
@@ -69,34 +69,11 @@ export class SpeakersService {
     totalPages: number;
     currentPage: number;
   }> {
-    const { page = 1, limit = 100 } = paginationDto;
-    const skip = (page - 1) * limit;
-
-    const filterQuery: FilterQuery<Speaker> = {};
-
-    Object.keys(filters).forEach((key) => {
-      const value = filters[key];
-      if (value) {
-        if (key === 'eventId' || key.endsWith('Id')) {
-          filterQuery[key] = new Types.ObjectId(value as string);
-        } else if (typeof value === 'string') {
-          filterQuery[key] = { $regex: value, $options: 'i' };
-        } else {
-          filterQuery[key] = value;
-        }
-      }
-    });
-
-    const totalItems =
-      await this.SpeakerModel.countDocuments(filterQuery).exec();
-    const items = await this.SpeakerModel.find(filterQuery)
-      .skip(skip)
-      .limit(limit)
-      .exec();
-
-    const totalPages = Math.ceil(totalItems / limit);
-
-    return { items, totalItems, totalPages, currentPage: page };
+    return findWithFilters<Speaker>(
+          this.SpeakerModel,
+          paginationDto,
+          paginationDto.filters
+        );
   }
 
   async findOne(id: string): Promise<Speaker> {

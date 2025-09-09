@@ -24,7 +24,6 @@ export class AgendaController {
 
   @Get('search')
   async findWithFilters(
-    @Query() filters: Partial<Agenda>,
     @Query() paginationDto: PaginationDto,
   ): Promise<
     ResponseDto<{
@@ -35,7 +34,6 @@ export class AgendaController {
     }>
   > {
     const result = await this.agendaService.findWithFilters(
-      filters,
       paginationDto,
     );
     return result.items.length > 0
@@ -44,18 +42,25 @@ export class AgendaController {
   }
 
   @Get()
-  async findAll(@Query() paginationDto: PaginationDto): Promise<
-    ResponseDto<{
-      items: Agenda[];
-      totalItems: number;
-      totalPages: number;
-      currentPage: number;
-    }>
-  > {
-    const result = await this.agendaService.findAll(paginationDto);
-    return result.items.length > 0
-      ? new ResponseDto('success', 'Agendas encontradas', result)
-      : new ResponseDto('error', 'No se encontraron agendas');
+  async findAll(
+    @Query() paginationDto: PaginationDto,
+  ) {
+    console.log('📥 Query params recibidos:', paginationDto); // Debug
+    
+    const result = await this.agendaService.findWithFilters(
+     
+      paginationDto,
+     
+    );
+
+    return {
+      data: {
+        items: result.items,
+        totalItems: result.totalItems,
+        totalPages: result.totalPages,
+        currentPage: result.currentPage,
+      }
+    };
   }
 
   @Get(':id')

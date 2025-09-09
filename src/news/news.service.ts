@@ -1,10 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { News } from './interfaces/news.interface';
-import { FilterQuery, Model, Types } from 'mongoose';
+import { Model } from 'mongoose';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { CreateNewsDto } from './dto/create-news.dto';
 import { UpdateNewsDto } from './dto/update-news.dto';
+import { findWithFilters } from 'src/common/common.service';
 
 @Injectable()
 export class NewsService {
@@ -46,7 +47,6 @@ export class NewsService {
 
   // Buscar noticias con filtros y paginación
   async findWithFilters(
-    filters: Partial<News & { search?: string }>,
     paginationDto: PaginationDto,
   ): Promise<{
     items: News[];
@@ -54,48 +54,11 @@ export class NewsService {
     totalPages: number;
     currentPage: number;
   }> {
-    const { page = 1, limit = 10 } = paginationDto;
-    const skip = (page - 1) * limit;
-
-    const filterQuery: FilterQuery<News> = {};
-
-    const filterableFields = Object.keys(filters).filter(
-      (key) => key !== 'page' && key !== 'limit',
-    );
-
-    // Si hay un término de búsqueda general
-    if (filters.search) {
-      const searchTerm = filters.search as string;
-      filterQuery.$or = [
-        { title: { $regex: new RegExp(searchTerm, 'i') } },
-        { content: { $regex: new RegExp(searchTerm, 'i') } },
-      ];
-    }
-
-    // Aplicar otros filtros
-    filterableFields.forEach((key) => {
-      if (filters[key] && key !== 'search') {
-        if (key === 'organizationId') {
-          filterQuery[key] = new Types.ObjectId(filters[key]);
-        } else if (typeof filters[key] === 'string') {
-          filterQuery[key] = { $regex: new RegExp(filters[key], 'i') };
-        } else {
-          filterQuery[key] = filters[key];
-        }
-      }
-    });
-
-    const totalItems = await this.newsModel.countDocuments(filterQuery).exec();
-    const items = await this.newsModel
-      .find(filterQuery)
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit)
-      .exec();
-
-    const totalPages = Math.ceil(totalItems / limit);
-
-    return { items, totalItems, totalPages, currentPage: page };
+   return findWithFilters<News>(
+           this.newsModel,
+           paginationDto,
+           paginationDto.filters
+         );
   }
 
   // Obtener una noticia por ID
