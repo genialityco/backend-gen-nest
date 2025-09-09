@@ -10,7 +10,6 @@ import {
   Query,
   ValidationPipe,
   BadRequestException,
-  Res
 } from '@nestjs/common';
 import { PostersService } from './posters.service';
 import { CreatePosterDto } from './dto/create-poster.dto';
@@ -19,7 +18,6 @@ import { VotePosterDto } from './dto/vote-poster.dto';
 import { Poster } from './interfaces/poster.interface';
 import { ResponseDto } from 'src/common/response.dto';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
-import { Response } from 'express';
 
 @Controller('posters')
 export class PostersController {

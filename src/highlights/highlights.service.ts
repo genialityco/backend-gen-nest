@@ -65,13 +65,13 @@ export class HighlightsService {
               this.highlightModel,
               paginationDto,
               paginationDto.filters
-              ['eventId']
+              
             );
   }
 
   // Obtener un highlight por ID
   async findOne(id: string): Promise<Highlight | null> {
-    return await this.highlightModel.findById(id).populate('eventId').exec();
+    return await this.highlightModel.findById(id).exec();
   }
 
   // Eliminar un highlight por ID

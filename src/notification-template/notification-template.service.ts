@@ -1,10 +1,11 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, FilterQuery, Types } from 'mongoose';
+import { Model, FilterQuery } from 'mongoose';
 import { NotificationTemplate } from './interfaces/notification-template.interface';
 import { CreateNotificationTemplateDto } from './dto/create-notification-template.dto';
 import { UpdateNotificationTemplateDto } from './dto/update-notification-template.dto';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
+import { findWithFilters } from 'src/common/common.service';
 
 @Injectable()
 export class NotificationTemplateService {
@@ -71,7 +72,6 @@ export class NotificationTemplateService {
 
   // Buscar plantillas con filtros dinámicos y paginación
 async findWithFilters(
-    filters: Partial<NotificationTemplate & { search?: string }>,
     paginationDto: PaginationDto,
   ): Promise<{
     items: NotificationTemplate[];
@@ -79,52 +79,11 @@ async findWithFilters(
     totalPages: number;
     currentPage: number;
   }> {
-    const { page = 1, limit = 10 } = paginationDto;
-    const skip = (page - 1) * limit;
-  
-    const filterQuery: FilterQuery<NotificationTemplate> = {};
-  
-    // Si hay un término de búsqueda general
-    if (filters.search) {
-      const searchTerm = filters.search as string;
-      filterQuery.$or = [
-        { title: { $regex: new RegExp(searchTerm, 'i') } },
-        { body: { $regex: new RegExp(searchTerm, 'i') } },
-      ];
-    }
-  
-    // Aplicar filtros dinámicos específicos
-    const filterableFields = Object.keys(filters).filter(
-      (key) => key !== 'page' && key !== 'limit' && key !== 'search',
+    return findWithFilters<NotificationTemplate>(
+      this.notificationTemplateModel,
+      paginationDto,
+      paginationDto.filters
     );
-  
-    filterableFields.forEach((key) => {
-      if (filters[key]) {
-        if (key === 'organizationId') {
-          filterQuery[key] = new Types.ObjectId(filters[key]);
-        } else if (typeof filters[key] === 'string') {
-          filterQuery[key] = { $regex: new RegExp(filters[key], 'i') };
-        } else {
-          filterQuery[key] = filters[key];
-        }
-      }
-    });
-  
-    // Obtener el total de elementos que cumplen con los filtros
-    const totalItems = await this.notificationTemplateModel
-      .countDocuments(filterQuery)
-      .exec();
-  
-    // Obtener los elementos con paginación
-    const items = await this.notificationTemplateModel
-      .find(filterQuery)
-      .skip(skip)
-      .limit(limit)
-      .exec();
-  
-    const totalPages = Math.ceil(totalItems / limit);
-  
-    return { items, totalItems, totalPages, currentPage: page };
   }
   
 

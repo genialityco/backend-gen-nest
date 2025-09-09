@@ -9,7 +9,6 @@ import {
     Body,
     Query,
     ValidationPipe,
-    Res
   } from '@nestjs/common';
   import { NotificationTemplateService } from './notification-template.service';
   import { CreateNotificationTemplateDto } from './dto/create-notification-template.dto';
@@ -17,7 +16,7 @@ import {
   import { NotificationTemplate } from './interfaces/notification-template.interface';
   import { ResponseDto } from 'src/common/response.dto';
   import { PaginationDto } from 'src/common/dto/pagination.dto';
-  import { Response } from 'express';
+
   
   @Controller('notification-templates')
   export class NotificationTemplateController {
@@ -39,7 +38,6 @@ import {
       }>
     > {
       const result = await this.notificationTemplateService.findWithFilters(
-        query,
         paginationDto,
       );
   
@@ -51,28 +49,24 @@ import {
     // Obtener todas las plantillas con paginación
     @Get()
     async findAll(
-      @Res({ passthrough: true }) res: Response,
       @Query() paginationDto: PaginationDto,
-      @Query('title_like') title_like?: string,
-    ): Promise<
-      ResponseDto<{
-        items: NotificationTemplate[];
-        totalItems: number;
-        totalPages: number;
-        currentPage: number;
-      }>
-    > {
-      const result = await this.notificationTemplateService.findAll(
+    ) {
+      console.log('📥 Query params recibidos:', paginationDto); // Debug
+      
+      const result = await this.notificationTemplateService.findWithFilters(
+       
         paginationDto,
-        title_like,
+        
       );
   
-      res.header('x-total-count', result.totalItems.toString());
-      res.header('access-control-expose-headers', 'x-total-count');
-  
-      return result.items.length > 0
-        ? new ResponseDto('success', 'Plantillas encontradas', result)
-        : new ResponseDto('error', 'No se encontraron plantillas');
+      return {
+        data: {
+          items: result.items,
+          totalItems: result.totalItems,
+          totalPages: result.totalPages,
+          currentPage: result.currentPage,
+        }
+      };
     }
   
     // Obtener una plantilla por ID
