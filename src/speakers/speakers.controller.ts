@@ -9,7 +9,6 @@ import {
   Body,
   Query,
   ValidationPipe,
-  Res
 } from '@nestjs/common';
 import { SpeakersService } from './speakers.service';
 import { CreateSpeakerDto } from './dto/create-speaker.dto';
@@ -17,7 +16,6 @@ import { UpdateSpeakerDto } from './dto/update-speaker.dto';
 import { Speaker } from './interfaces/speakers.interface';
 import { ResponseDto } from 'src/common/response.dto';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
-import { Response } from 'express';
 @Controller('speakers')
 export class SpeakersController {
   constructor(private readonly speakersService: SpeakersService) {}

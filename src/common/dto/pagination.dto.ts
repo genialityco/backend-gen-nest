@@ -1,4 +1,4 @@
-import { IsOptional, IsNumber, Min, IsString, IsArray, ValidateNested, IsObject } from 'class-validator';
+import { IsOptional, IsNumber, Min, IsString, IsArray, ValidateNested } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
 import { FilterDto } from '../filters/filter.dto';
 
@@ -58,6 +58,8 @@ export class PaginationDto {
   @IsNumber()
   @Min(1)
   readonly pageSize?: number = 10;
+  
+  [key: string]: any;
 
   // Array de sorters
   @IsOptional()
@@ -65,11 +67,12 @@ export class PaginationDto {
   @ValidateNested({ each: true })
   @Type(() => SorterDto)
   @Transform(({ value }) => {
+    // Si viene como objeto con índices (sorters[0], sorters[1]), convertir a array
     if (value && typeof value === 'object' && !Array.isArray(value)) {
       return Object.keys(value)
-        .sort((a, b) => parseInt(a) - parseInt(b))
+        .sort((a, b) => parseInt(a) - parseInt(b)) // Ordenar por índice
         .map(key => value[key])
-        .filter(sorter => sorter && (sorter.field || sorter.field === ''));
+        .filter(sorter => sorter && (sorter.field || sorter.field === '')); // Filtrar sorters válidos
     }
     return Array.isArray(value) ? value.filter(sorter => sorter && (sorter.field || sorter.field === '')) : [];
   })
@@ -81,27 +84,13 @@ export class PaginationDto {
   @ValidateNested({ each: true })
   @Type(() => FilterDto)
   @Transform(({ value }) => {
+    // Si viene como objeto con índices (filters[0], filters[1]), convertir a array
     if (value && typeof value === 'object' && !Array.isArray(value)) {
       return Object.keys(value)
-        .sort((a, b) => parseInt(a) - parseInt(b))
+        .sort((a, b) => parseInt(a) - parseInt(b)) // Ordenar por índice
         .map(key => value[key]);
     }
     return value || [];
   })
   readonly filters?: FilterDto[] = [];
-
-  // Nuevo campo para parámetros clave-valor
-  @IsOptional()
-  @IsObject()
-  @Transform(({ value }) => {
-    if (value && typeof value === 'object' && !Array.isArray(value)) {
-      return Object.entries(value).map(([field, value]) => ({
-        field,
-        operator: 'eq',
-        value
-      }));
-    }
-    return [];
-  })
-  readonly params?: FilterDto[] = [];
 }
