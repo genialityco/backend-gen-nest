@@ -13,21 +13,16 @@ export async function findWithFilters<T>(
   totalPages: number;
   currentPage: number;
 }> {
-  // Usar current/pageSize de refinedev como prioridad, fallback a page/limit
   const page = Number(paginationDto.current || paginationDto.page || 1);
   const limit = Number(paginationDto.pageSize || paginationDto.limit || 10);
   const skip = (page - 1) * limit;
 
   const filterQuery: FilterQuery<T> = {};
 
-  // Manejar ordenamiento - NUEVO
   const sortOptions: any = {};
-  
+
   if (paginationDto.sorters && paginationDto.sorters.length > 0) {
     console.log('🔄 Sorter recibidos:', paginationDto.sorters);
-    
-    // Refinedev envía múltiples sorters, pero generalmente usamos el primero
-    // Si necesitas múltiples, puedes mapearlos todos
     paginationDto.sorters.forEach((sorter) => {
       if (sorter.field) {
         const order = sorter.order?.toLowerCase() === 'desc' ? -1 : 1;
@@ -36,17 +31,21 @@ export async function findWithFilters<T>(
       }
     });
   } else {
-    // Fallback a los parámetros legacy _sort y _order
     if (paginationDto._sort && paginationDto._order) {
       const order = paginationDto._order.toLowerCase() === 'desc' ? -1 : 1;
       sortOptions[paginationDto._sort] = order;
-      
     }
   }
 
-  console.log('🔍 Filtros recibidos:', filtersArray);
+  // Combinar filtros de filters y params
+  const allFilters = [
+    ...(filtersArray || []),
+    ...(paginationDto.params || [])
+  ];
 
-  filtersArray.forEach((filter) => {
+  console.log('🔍 Filtros combinados:', allFilters);
+
+  allFilters.forEach((filter) => {
     const { field, operator = 'eq', value } = filter;
 
     if (!value && value !== 0 && value !== false) return;
@@ -58,21 +57,19 @@ export async function findWithFilters<T>(
     switch (operator) {
       case 'eq':
         if (field === '_id') {
-          // Validar ObjectId solo para _id con operador eq
           if (/^[0-9a-fA-F]{24}$/.test(stringValue)) {
             try {
               Object.assign(filterQuery, { [field]: new Types.ObjectId(stringValue) });
               console.log(`✅ ObjectId válido para _id: ${stringValue}`);
             } catch {
               console.log(`❌ Error creando ObjectId para _id: ${stringValue}`);
-              return; // Skip este filtro
+              return;
             }
           } else {
-            console.log(`⚠️ _id incompleto o inválido ignorado: "${stringValue}" (debe ser 24 caracteres hex)`);
-            return; // Skip este filtro
+            console.log(`⚠️ _id incompleto o inválido ignorado: "${stringValue}"`);
+            return;
           }
         } else if (field.includes('Id')) {
-          // Otros campos que terminan en Id
           try {
             Object.assign(filterQuery, { [field]: new Types.ObjectId(stringValue) });
           } catch {
@@ -147,7 +144,6 @@ export async function findWithFilters<T>(
         break;
 
       default:
-        // Fallback para operadores desconocidos
         if (field.includes('Id')) {
           try {
             Object.assign(filterQuery, { [field]: new Types.ObjectId(stringValue) });
@@ -158,7 +154,7 @@ export async function findWithFilters<T>(
           try {
             const regex = new RegExp(stringValue, 'i');
             Object.assign(filterQuery, { [field]: { $regex: regex } });
-          } catch  {
+          } catch {
             Object.assign(filterQuery, { [field]: { $regex: stringValue, $options: 'i' } });
           }
         } else {
@@ -171,26 +167,22 @@ export async function findWithFilters<T>(
   console.log('🔍 Query MongoDB final:', JSON.stringify(filterQuery, null, 2));
   console.log('🔄 Opciones de ordenamiento:', JSON.stringify(sortOptions, null, 2));
 
-  // Configurar populate options
   let query = model.find(filterQuery);
-  
+
   if (populateFields.length > 0) {
     const populateOptions: PopulateOptions[] = populateFields.map(field => ({ path: field }));
     query = query.populate(populateOptions);
     console.log('🔗 Campos a popular:', populateFields);
   }
 
-  // Aplicar ordenamiento - NUEVO
   if (Object.keys(sortOptions).length > 0) {
     query = query.sort(sortOptions);
     console.log('✅ Ordenamiento aplicado:', sortOptions);
   } else {
-    // Ordenamiento por defecto (opcional)
-    query = query.sort({ createdAt: -1 }); // o el campo que prefieras
+    query = query.sort({ createdAt: -1 });
     console.log('ℹ️ Usando ordenamiento por defecto: createdAt desc');
   }
 
-  // Ejecutar consultas
   const totalItems = await model.countDocuments(filterQuery).exec();
   const items = await query.skip(skip).limit(limit).exec();
 

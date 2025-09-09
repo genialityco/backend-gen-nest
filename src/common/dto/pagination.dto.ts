@@ -1,4 +1,4 @@
-import { IsOptional, IsNumber, Min, IsString, IsArray, ValidateNested } from 'class-validator';
+import { IsOptional, IsNumber, Min, IsString, IsArray, ValidateNested, IsObject } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
 import { FilterDto } from '../filters/filter.dto';
 
@@ -59,18 +59,17 @@ export class PaginationDto {
   @Min(1)
   readonly pageSize?: number = 10;
 
-  // Array de sorters - NUEVO
+  // Array de sorters
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => SorterDto)
   @Transform(({ value }) => {
-    // Si viene como objeto con índices (sorters[0], sorters[1]), convertir a array
     if (value && typeof value === 'object' && !Array.isArray(value)) {
       return Object.keys(value)
-        .sort((a, b) => parseInt(a) - parseInt(b)) // Ordenar por índice
+        .sort((a, b) => parseInt(a) - parseInt(b))
         .map(key => value[key])
-        .filter(sorter => sorter && (sorter.field || sorter.field === '')); // Filtrar sorters válidos
+        .filter(sorter => sorter && (sorter.field || sorter.field === ''));
     }
     return Array.isArray(value) ? value.filter(sorter => sorter && (sorter.field || sorter.field === '')) : [];
   })
@@ -82,13 +81,27 @@ export class PaginationDto {
   @ValidateNested({ each: true })
   @Type(() => FilterDto)
   @Transform(({ value }) => {
-    // Si viene como objeto con índices (filters[0], filters[1]), convertir a array
     if (value && typeof value === 'object' && !Array.isArray(value)) {
       return Object.keys(value)
-        .sort((a, b) => parseInt(a) - parseInt(b)) // Ordenar por índice
+        .sort((a, b) => parseInt(a) - parseInt(b))
         .map(key => value[key]);
     }
     return value || [];
   })
   readonly filters?: FilterDto[] = [];
+
+  // Nuevo campo para parámetros clave-valor
+  @IsOptional()
+  @IsObject()
+  @Transform(({ value }) => {
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      return Object.entries(value).map(([field, value]) => ({
+        field,
+        operator: 'eq',
+        value
+      }));
+    }
+    return [];
+  })
+  readonly params?: FilterDto[] = [];
 }
