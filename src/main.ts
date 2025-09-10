@@ -33,8 +33,8 @@ async function bootstrap() {
   await app.listen(port, '0.0.0.0');
 
   // Mostrar la IP de la red local en lugar de localhost
-  //const localIp = getLocalNetworkIp();
-  const localIp = 'localhost';
+  const localIp = getLocalNetworkIp();
+  //const localIp = 'localhost';
   console.log(`Application is running on: http://${localIp}:${port}`);
 }
 
