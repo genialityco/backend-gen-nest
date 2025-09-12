@@ -71,7 +71,7 @@ export class HighlightsService {
 
   // Obtener un highlight por ID
   async findOne(id: string): Promise<Highlight | null> {
-    return await this.highlightModel.findById(id).exec();
+    return await this.highlightModel.findById(id).populate('eventId');
   }
 
   // Eliminar un highlight por ID
