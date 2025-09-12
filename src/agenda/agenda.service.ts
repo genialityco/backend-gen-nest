@@ -75,7 +75,7 @@ export class AgendaService {
       this.agendaModel,
       paginationDto,
       paginationDto.filters,
-      ['eventId']
+      ['eventId', 'sessions.speakers', 'sessions.moduleId']
     );
   }
 
