@@ -16,6 +16,8 @@ import { UpdateHighlightDto } from './dto/update-highlight.dto';
 import { Highlight } from './interfaces/highlight.interface';
 import { ResponseDto } from 'src/common/response.dto';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
+import { EventExistsDto } from './schemas/highlight.schema';
+
 
 @Controller('highlights')
 export class HighlightsController {
@@ -100,4 +102,10 @@ export class HighlightsController {
       ? new ResponseDto('success', 'Highlight eliminado', result)
       : new ResponseDto('error', 'No se pudo eliminar el highlight');
   }
-}
+@Post('event/exists')
+async eventHasHighlights(
+  @Body() body: EventExistsDto,
+): Promise<ResponseDto<{ hasHighlights: any }>> {
+  const hasHighlights = await this.highlightsService.eventHasHighlights(body.eventId);
+  return new ResponseDto('success', 'Consulta realizada', { hasHighlights });
+}}

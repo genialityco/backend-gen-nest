@@ -7,6 +7,7 @@ import { UpdateHighlightDto } from './dto/update-highlight.dto';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { findWithFilters } from 'src/common/common.service';
 
+
 @Injectable()
 export class HighlightsService {
   constructor(
@@ -78,4 +79,12 @@ export class HighlightsService {
   async remove(id: string): Promise<Highlight | null> {
     return this.highlightModel.findByIdAndDelete(id).exec();
   }
+async eventHasHighlights(eventIds: any): Promise<Record<string, number>> {
+  const hasHighlights: Record<string, number> = {};
+  for (const id of eventIds) {
+    const count = await this.highlightModel.countDocuments({ eventId: id["eventId"] }).exec();
+    hasHighlights[id["eventId"]] = count;
+  }
+  return hasHighlights;
+}
 }

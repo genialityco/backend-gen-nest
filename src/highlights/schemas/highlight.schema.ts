@@ -1,3 +1,4 @@
+import { IsArray, IsString } from 'class-validator';
 import { Schema } from 'mongoose';
 
 export const HighlightSchema = new Schema(
@@ -12,3 +13,8 @@ export const HighlightSchema = new Schema(
   },
   { timestamps: true },
 );
+export class EventExistsDto {
+  @IsArray()
+  @IsString({ each: true })
+  eventId: string[];
+}
