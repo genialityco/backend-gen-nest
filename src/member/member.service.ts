@@ -47,6 +47,7 @@ export class MemberService {
   // Buscar miembros con filtros y paginación
   async findWithFilters(
     paginationDto: PaginationDto,
+    populateFields: string[] = [],
   ): Promise<{
     items: Member[];
     totalItems: number;
@@ -56,9 +57,11 @@ export class MemberService {
     return findWithFilters<Member>(
                this.memberModel,
                paginationDto,
-               paginationDto.filters
+               paginationDto.filters,
+               populateFields
              );
   }
+
   
 
   // Obtener un miembro por ID

@@ -39,7 +39,7 @@ export class NotificationsController {
   @Post('send')
   async sendNotification(@Body() payload: any): Promise<void> {
     const { expoPushToken, title, body, data, iconUrl } = payload;
-
+    console.log('📥 Payload', payload)
     await this.notificationsService.sendPushNotification(
       expoPushToken,
       title,

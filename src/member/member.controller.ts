@@ -34,6 +34,7 @@ export class MemberController {
   > {
     const result = await this.memberService.findWithFilters(
       paginationDto,
+      ['userId']
     );
     return result.items.length > 0
       ? new ResponseDto('success', 'Miembros encontrados', result)
