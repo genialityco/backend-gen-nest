@@ -17,4 +17,5 @@ export class AuthService {
   async getUser(uid: string) {
     return admin.auth().getUser(uid);
   }
+  
 }

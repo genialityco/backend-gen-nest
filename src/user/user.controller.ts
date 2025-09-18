@@ -15,6 +15,8 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { User } from './interfaces/user.interface';
 import { ResponseDto } from 'src/common/response.dto';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
+import { addOrCreateAttendee } from './schemas/user.schema';
+
 
 @Controller('users')
 export class UserController {
@@ -72,5 +74,23 @@ export class UserController {
   ) {
     const { userId, expoPushToken } = body;
     return this.userService.updatePushToken(userId, expoPushToken);
+  }
+
+  // 🚀 Nuevo endpoint para addOrCreateAttendee
+  @Post('attendees')
+  async addOrCreateAttendee(
+    @Body(new ValidationPipe()) payload: addOrCreateAttendee[],
+  ): Promise<ResponseDto<any>> {
+    const results = [];
+    console.log('Payload recibido en el controlador:', payload);
+    for (const item of payload) {
+      const result = await this.userService.addOrCreateAttendee(item);
+      results.push(result);
+    }
+    return new ResponseDto(
+      'success',
+      'Attendee procesado correctamente',
+      results,
+    );
   }
 }
