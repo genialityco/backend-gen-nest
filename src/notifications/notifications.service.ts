@@ -232,38 +232,35 @@ export class NotificationsService {
   }
 async processScheduledNotifications(): Promise<NotificationTemplate[] | void> {
     try {
-    //    const nowInColombia = new Date(new Date().toLocaleString("en-US", {
-    //   timeZone: "America/Bogota"
-    // }));
     const now = new Date();
-    console.log("⏰ Procesando notificaciones programadas a las:", now);
+    //console.log("⏰ Procesando notificaciones programadas a las:", now);
       // Buscar solo los que tienen scheduledAt definido, ya vencido, y no enviados
       const templates = await this.notificationTemplateModel.find({
         scheduledAt: { $exists: true, $lte: now },
         isSent: false,
       });
       //return templates;
-      // for (const template of templates) {
-      //   console.log(`Enviando notificación programada: ${template.title}`);
-      //   await this.sendFromTemplate(template._id.toString());
-      // }
-      console.log("Templates encontrados:", JSON.stringify(templates, null, 2));
+      //console.log("Templates encontrados:", JSON.stringify(templates, null, 2));
       if (templates.length > 0) {
-       for (const template of templates) {
-        console.log(`Enviando notificación programada: ${template.title}`);
-        await this.sendPushNotification(
+        for (const template of templates) {
+          //console.log(`Enviando notificación programada: ${template.title}`);
+          await this.sendFromTemplate(template._id.toString());
+        }
+        //  for (const template of templates) {
+      //   console.log(`Enviando notificación programada: ${template.title}`);
+      //   await this.sendPushNotification(
 
-          "ExponentPushToken[_g4P3PCYK5upzQP-hJ7ejB]",
-          template.title,
-          template.body,
-          {userId: "672aae62778fcbf45a20c475"},
-          this.defaultIconUrl
-        );
-        await this.notificationTemplateModel.findByIdAndUpdate(template._id, {
+      //     "ExponentPushToken[_g4P3PCYK5upzQP-hJ7ejB]",
+      //     template.title,
+      //     template.body,
+      //     {userId: "672aae62778fcbf45a20c475"},
+      //     this.defaultIconUrl
+      //   );
+      //   await this.notificationTemplateModel.findByIdAndUpdate(template._id, {
        
-        isSent: true, // Marcar como enviado
-      });
-      }
+      //   isSent: true, // Marcar como enviado
+      // });
+      // }
     }
     } catch (error) {
       console.error('Error al procesar notificaciones programadas:', error);
