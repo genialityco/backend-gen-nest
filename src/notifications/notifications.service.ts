@@ -232,13 +232,14 @@ export class NotificationsService {
   }
 async processScheduledNotifications(): Promise<NotificationTemplate[] | void> {
     try {
-       const nowInColombia = new Date(new Date().toLocaleString("en-US", {
-      timeZone: "America/Bogota"
-    }));
-    console.log("⏰ Procesando notificaciones programadas a las:", nowInColombia);
+    //    const nowInColombia = new Date(new Date().toLocaleString("en-US", {
+    //   timeZone: "America/Bogota"
+    // }));
+    const now = new Date();
+    console.log("⏰ Procesando notificaciones programadas a las:", now);
       // Buscar solo los que tienen scheduledAt definido, ya vencido, y no enviados
       const templates = await this.notificationTemplateModel.find({
-        scheduledAt: { $exists: true, $lte: nowInColombia },
+        scheduledAt: { $exists: true, $lte: now },
         isSent: false,
       });
       //return templates;
