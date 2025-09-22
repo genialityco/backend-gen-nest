@@ -2,12 +2,7 @@ import { Schema } from 'mongoose';
 
 export const MemberSchema = new Schema(
   {
-    userId: {
-      type: Schema.Types.ObjectId, 
-      ref: 'User',
-      required: false,
-    },
-    
+    userId: { type: String, required: true },
     organizationId: {
       type: Schema.Types.ObjectId,
       ref: 'Organization',

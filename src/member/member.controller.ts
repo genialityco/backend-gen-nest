@@ -34,7 +34,24 @@ export class MemberController {
   > {
     const result = await this.memberService.findWithFilters(
       paginationDto,
-      ['userId']
+    );
+    return result.items.length > 0
+      ? new ResponseDto('success', 'Miembros encontrados', result)
+      : new ResponseDto('error', 'No se encontraron miembros');
+  }
+  @Get('searchByEmail')
+  async searchByEmail(
+    @Query() paginationDto: PaginationDto,
+  ): Promise<
+    ResponseDto<{
+      items: Member[];
+      totalItems: number;
+      totalPages: number;
+      currentPage: number;
+    }>
+  > {
+    const result = await this.memberService.findMembersByEmail(
+      paginationDto,
     );
     return result.items.length > 0
       ? new ResponseDto('success', 'Miembros encontrados', result)
@@ -99,4 +116,5 @@ export class MemberController {
       ? new ResponseDto('success', 'Miembro eliminado', result)
       : new ResponseDto('error', 'No se pudo eliminar el miembro');
   }
+  
 }

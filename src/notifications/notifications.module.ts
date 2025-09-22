@@ -5,9 +5,11 @@ import { NotificationsController } from './notifications.controller';
 import { NotificationSchema } from './schemas/notification.schema';
 import { UserSchema } from 'src/user/schemas/user.schema';
 import { NotificationTemplateSchema } from 'src/notification-template/schemas/notification-template.schema';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
+    ScheduleModule.forRoot(),
     MongooseModule.forFeature([
       { name: 'Notification', schema: NotificationSchema },
       { name: 'User', schema: UserSchema },

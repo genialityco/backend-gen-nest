@@ -10,4 +10,5 @@ export interface NotificationTemplate extends Document {
   createdAt: Date;
   updatedAt: Date;
   sentAt: Date | null;
+  scheduledAt?: Date | null;
 }

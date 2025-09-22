@@ -85,7 +85,9 @@ import {
     async create(
       @Body(new ValidationPipe()) createDto: CreateNotificationTemplateDto,
     ): Promise<ResponseDto<NotificationTemplate>> {
+      console.log('📥 CreateNotificationTemplateDto', createDto);
       const result = await this.notificationTemplateService.create(createDto);
+      console.log('📤 Plantilla creada', result);
       return result
         ? new ResponseDto('success', 'Plantilla creada', result)
         : new ResponseDto('error', 'No se pudo crear la plantilla');

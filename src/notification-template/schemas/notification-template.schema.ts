@@ -13,6 +13,7 @@ export const NotificationTemplateSchema = new Schema(
     isSent: { type: Boolean, default: false },
     totalSent: { type: Number, default: 0 },
     sentAt: { type: Date, default: null },
+    scheduledAt: { type: Date, default: null },
   },
   { timestamps: true },
 );

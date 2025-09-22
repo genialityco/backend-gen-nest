@@ -37,4 +37,8 @@ export class CreateNotificationTemplateDto {
   @IsOptional()
   @IsDateString()
   readonly sentAt?: Date;
+
+  @IsDateString()
+  @IsOptional()
+  readonly scheduledAt?: Date;
 }

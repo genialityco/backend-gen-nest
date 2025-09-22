@@ -1,4 +1,5 @@
 import { Controller, Post, Get, Put, Body, Param } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { NotificationsService } from './notifications.service';
 import { CreateNotificationDto } from './dto/create-notification.dto';
 
@@ -13,6 +14,11 @@ export class NotificationsController {
   ) {
     return this.notificationsService.createNotification(createNotificationDto);
   }
+  // @Get('test')
+  //  async testEndpoint() {
+  //   const res = await this.notificationsService.processScheduledNotifications();
+  //   return res;
+  // }
 
   // Obtener las notificaciones de un usuario
   @Get(':userId')
@@ -72,4 +78,5 @@ export class NotificationsController {
   ): Promise<any> {
     return this.notificationsService.sendFromTemplate(templateId);
   }
+
 }
