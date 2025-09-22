@@ -191,7 +191,7 @@ async addOrCreateAttendee(payload: {
   // 🔹 3. MongoDB: crear Attendee inmediatamente en ambos casos
   let mongoAttendee = await this.attendeeModel.findOne({
     eventId: attendee.eventId,
-    userId: mongoUser._id,
+    memberId: mongoMember._id
   });
 
   if (!mongoAttendee) {
