@@ -199,7 +199,7 @@ async addOrCreateAttendee(payload: {
       eventId: attendee.eventId,
       userId: mongoUser._id,
       memberId: mongoMember._id,
-      attended: attendee.attended ?? false,
+      attended: true,
       certificationHours: attendee.certificationHours,
       typeAttendee: attendee.typeAttendee,
       certificateDownloads: attendee.certificateDownloads ?? 0,
@@ -207,7 +207,7 @@ async addOrCreateAttendee(payload: {
     console.log('Attendee creado');
   } else {
     // Si ya existe, actualizar
-    mongoAttendee.attended = attendee.attended ?? mongoAttendee.attended;
+    mongoAttendee.attended = true;
     mongoAttendee.certificationHours = attendee.certificationHours ?? mongoAttendee.certificationHours;
     mongoAttendee.typeAttendee = attendee.typeAttendee ?? mongoAttendee.typeAttendee;
     mongoAttendee.certificateDownloads = attendee.certificateDownloads ?? mongoAttendee.certificateDownloads;
