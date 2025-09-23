@@ -32,8 +32,8 @@ export class AttendeeController {
       currentPage: number;
     }>
   > {
-    const result = await this.attendeeService.findWithFilters(
-      query,
+    const result = await this.attendeeService.findWithFilters1(
+      
       paginationDto,
     );
     return result.items.length > 0

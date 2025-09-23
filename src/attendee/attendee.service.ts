@@ -5,6 +5,7 @@ import { Attendee } from './interfaces/attendee.interface';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { CreateAttendeeDto } from './dto/create-attendee.dto';
 import { UpdateAttendeeDto } from './dto/update-attendee.dto';
+import { findWithFilters } from 'src/common/common.service';
 
 @Injectable()
 export class AttendeeService {
@@ -113,6 +114,23 @@ export class AttendeeService {
   async remove(id: string): Promise<Attendee | null> {
     return this.attendeeModel.findByIdAndDelete(id).exec();
   }
+
+  async findWithFilters1(
+      paginationDto: PaginationDto,
+    ): Promise<{
+      items: Attendee[];
+      totalItems: number;
+      totalPages: number;
+      currentPage: number;
+    }> {
+      return findWithFilters<Attendee>(
+                 this.attendeeModel,
+                 paginationDto,
+                 paginationDto.filters,
+                 [ 'memberId', "eventId"]
+               );
+    }
+  
 
   // Incrementar descargas del certificado por usuario
   // attendee.service.ts
