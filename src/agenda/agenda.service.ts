@@ -75,7 +75,16 @@ export class AgendaService {
       this.agendaModel,
       paginationDto,
       paginationDto.filters,
-      ['eventId', 'sessions.speakers', 'sessions.moduleId']
+      ['eventId'],
+      [ // Populate anidado
+        {
+          path: 'sessions',
+          populate: [
+            { path: 'speakers', model: 'Speaker' }, // Array de ObjectIds
+            { path: 'moduleId', model: 'Module' }   // ObjectId único
+          ]
+        }
+      ]
     );
   }
 

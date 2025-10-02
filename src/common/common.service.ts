@@ -1,12 +1,22 @@
-import { FilterQuery, Model, Types, PopulateOptions, Schema } from 'mongoose';
+import { FilterQuery, Model, Types, Schema } from 'mongoose';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { FilterDto } from '../common/filters/filter.dto';
+
+// Nueva interfaz para definir campos anidados a popular
+export interface NestedPopulateConfig {
+  path: string;
+  populate?: Array<{
+    path: string; 
+    model?: string; 
+  }>;
+}
 
 export async function findWithFilters<T>(
   model: Model<T>,
   paginationDto: PaginationDto,
   filtersArray: FilterDto[] = [],
   populateFields: string[] = [],
+  nestedPopulate: NestedPopulateConfig[] = [], 
 ): Promise<{
   items: T[];
   totalItems: number;
@@ -15,15 +25,13 @@ export async function findWithFilters<T>(
 }> {
   console.log('📥 PaginationDto recibido:', JSON.stringify(paginationDto, null, 2));
   
-  // Usar current/pageSize de refinedev como prioridad, fallback a page/limit
   const page = Number(paginationDto.current || paginationDto.page || 1);
   const limit = Number(paginationDto.pageSize || paginationDto.limit || 10);
   const skip = (page - 1) * limit;
 
   const filterQuery: FilterQuery<T> = {};
-  const populateFilters: Record<string, any> = {}; // Filtros para campos populados
+  const populateFilters: Record<string, any> = {};
 
-  // Propiedades conocidas de paginación
   const knownProperties = [
     '_start', '_end', '_sort', '_order', 'page', 'limit', 
     'current', 'pageSize', 'sorters', 'filters'
@@ -31,7 +39,6 @@ export async function findWithFilters<T>(
   
   console.log('🔍 Buscando filtros directos en paginationDto...');
   
-  // Extraer cualquier propiedad adicional que no esté en la lista de propiedades conocidas
   Object.keys(paginationDto).forEach((key) => {
     if (!knownProperties.includes(key) && paginationDto[key] !== undefined && paginationDto[key] !== null) {
       console.log(`📝 Procesando filtro directo: ${key} eq "${paginationDto[key]}"`);
@@ -39,13 +46,11 @@ export async function findWithFilters<T>(
       const value = paginationDto[key];
       const stringValue = String(value);
       
-      // Verificar si es un filtro para un campo populado
       const isPopulateFilter = populateFields.some(field => key.startsWith(field + '.'));
       
       if (isPopulateFilter) {
         populateFilters[key] = value;
       } else {
-        // Aplicar la misma lógica que el operador 'eq' en los filtros locales
         if (key === '_id') {
           if (/^[0-9a-fA-F]{24}$/.test(stringValue)) {
             try {
@@ -55,7 +60,7 @@ export async function findWithFilters<T>(
               console.log(`❌ Error creando ObjectId para _id: ${stringValue}`);
             }
           } else {
-            console.log(`⚠️ _id incompleto o inválido ignorado: "${stringValue}" (longitud: ${stringValue.length})`);
+            console.log(`⚠️ _id incompleto o inválido ignorado: "${stringValue}"`);
           }
         } else if (key.includes('Id')) {
           try {
@@ -64,7 +69,6 @@ export async function findWithFilters<T>(
             Object.assign(filterQuery, { [key]: stringValue });
           }
         } else {
-          // Para campos booleanos como "attended", convertir string a boolean
           if (key === 'attended' && typeof value === 'string') {
             const boolValue = value.toLowerCase() === 'true';
             Object.assign(filterQuery, { [key]: boolValue });
@@ -78,12 +82,10 @@ export async function findWithFilters<T>(
     }
   });
 
-  // Manejar ordenamiento
   const sortOptions: any = {};
   
   if (paginationDto.sorters && paginationDto.sorters.length > 0) {
     console.log('🔄 Sorter recibidos:', paginationDto.sorters);
-    
     paginationDto.sorters.forEach((sorter) => {
       if (sorter.field) {
         const order = sorter.order?.toLowerCase() === 'desc' ? -1 : 1;
@@ -100,30 +102,24 @@ export async function findWithFilters<T>(
 
   console.log('🔍 Filtros recibidos:', filtersArray);
 
-  // Procesar filtros del array
   filtersArray.forEach((filter) => {
     const { field, operator = 'eq', value } = filter;
-
     if (!value && value !== 0 && value !== false) return;
 
-    console.log(`📝 Procesando filtro: ${field} ${operator} "${value}" (tipo: ${typeof value})`);
+    console.log(`📝 Procesando filtro: ${field} ${operator} "${value}"`);
 
-    // Verificar si es un filtro para un campo populado
     const isPopulateFilter = populateFields.some(popField => field.startsWith(popField + '.'));
     
     if (isPopulateFilter) {
-      // Almacenar filtros para campos populados
       if (!populateFilters[field]) {
         populateFilters[field] = {};
       }
       populateFilters[field] = { operator, value };
     } else {
-      // Procesar filtros locales normalmente
       processLocalFilter(filterQuery, field, operator, value);
     }
   });
 
-  // Función helper para procesar filtros locales
   function processLocalFilter(filterQuery: any, field: string, operator: string, value: any) {
     const stringValue = String(value);
 
@@ -139,7 +135,7 @@ export async function findWithFilters<T>(
               return;
             }
           } else {
-            console.log(`⚠️ _id incompleto o inválido ignorado en filtro local: "${stringValue}" (longitud: ${stringValue.length})`);
+            console.log(`⚠️ _id incompleto o inválido ignorado en filtro local: "${stringValue}"`);
             return;
           }
         } else if (field.includes('Id')) {
@@ -157,7 +153,7 @@ export async function findWithFilters<T>(
         try {
           const regex = new RegExp(stringValue, 'i');
           Object.assign(filterQuery, { [field]: { $regex: regex } });
-        } catch (error) {
+        } catch {
           Object.assign(filterQuery, { [field]: { $regex: stringValue, $options: 'i' } });
         }
         break;
@@ -166,7 +162,7 @@ export async function findWithFilters<T>(
         try {
           const regex = new RegExp(`^${stringValue}`, 'i');
           Object.assign(filterQuery, { [field]: { $regex: regex } });
-        } catch (error) {
+        } catch {
           Object.assign(filterQuery, { [field]: { $regex: `^${stringValue}`, $options: 'i' } });
         }
         break;
@@ -175,7 +171,7 @@ export async function findWithFilters<T>(
         try {
           const regex = new RegExp(`${stringValue}$`, 'i');
           Object.assign(filterQuery, { [field]: { $regex: regex } });
-        } catch (error) {
+        } catch {
           Object.assign(filterQuery, { [field]: { $regex: `${stringValue}$`, $options: 'i' } });
         }
         break;
@@ -231,23 +227,20 @@ export async function findWithFilters<T>(
     }
   }
 
-  // Función helper para crear pipeline de agregación con $lookup
   function createAggregationPipeline() {
     const pipeline: any[] = [];
 
-    // Agregar $match inicial para filtros locales
     if (Object.keys(filterQuery).length > 0) {
-      console.log('🎯 FilterQuery final:', JSON.stringify(filterQuery, null, 2));
+      console.log('🎯 FilterQuery inicial:', JSON.stringify(filterQuery, null, 2));
       pipeline.push({ $match: filterQuery });
     }
 
-    // Agregar $lookup para cada campo populado
+    // Procesar populate de campos simples (nivel raíz)
     populateFields.forEach(field => {
       const schema = model.schema;
       const schemaPath = schema.path(field);
       
       if (schemaPath && schemaPath instanceof Schema.Types.ObjectId) {
-        // Obtener el nombre de la colección referenciada
         const refModel = schemaPath.options.ref;
         if (refModel) {
           const refCollection = model.db.model(refModel).collection.name;
@@ -257,11 +250,10 @@ export async function findWithFilters<T>(
               from: refCollection,
               localField: field,
               foreignField: '_id',
-              as: field + '_temp' // Usar nombre temporal para el lookup
+              as: field + '_temp'
             }
           });
 
-          // Unwind si es una referencia singular
           pipeline.push({
             $unwind: {
               path: `$${field}_temp`,
@@ -269,14 +261,12 @@ export async function findWithFilters<T>(
             }
           });
 
-          // Reemplazar el campo original con los datos populados
           pipeline.push({
             $addFields: {
               [field]: `$${field}_temp`
             }
           });
 
-          // Remover el campo temporal
           pipeline.push({
             $unset: `${field}_temp`
           });
@@ -284,7 +274,132 @@ export async function findWithFilters<T>(
       }
     });
 
-    // Agregar filtros para campos populados
+    // NUEVO: Procesar populate anidado en arrays
+    nestedPopulate.forEach(config => {
+      const { path, populate = [] } = config;
+      
+      //console.log(`🔗 Procesando populate anidado para: ${path}`)
+      // Guardar el _id original del documento para reagrupar después
+      pipeline.push({
+        $addFields: {
+          _originalId: '$_id'
+        }
+      });
+
+      // Unwind del array principal (ej: sessions)
+      pipeline.push({
+        $unwind: {
+          path: `$${path}`,
+          preserveNullAndEmptyArrays: true
+        }
+      });
+
+      // Procesar cada campo a popular dentro del array
+      populate.forEach(popConfig => {
+        const { path: nestedPath, model: refModelName } = popConfig;
+        const fullPath = `${path}.${nestedPath}`;
+
+        // Intentar obtener el modelo de referencia
+        let refCollection: string;
+        
+        if (refModelName) {
+          // Si se proporciona el nombre del modelo explícitamente
+          refCollection = model.db.model(refModelName).collection.name;
+        } else {
+          // Intentar obtenerlo del schema
+          try {
+            const schema = model.schema;
+            const arrayPath = schema.path(path);
+            
+            if (arrayPath && arrayPath.schema) {
+              const nestedSchemaPath = arrayPath.schema.path(nestedPath);
+              
+              if (nestedSchemaPath) {
+                const ref = nestedSchemaPath.options?.ref;
+                if (ref) {
+                  refCollection = model.db.model(ref).collection.name;
+                } else {
+                  console.warn(`⚠️ No se encontró 'ref' para ${fullPath}`);
+                  return;
+                }
+              } else {
+                console.warn(`⚠️ No se encontró schema path para ${nestedPath}`);
+                return;
+              }
+            } else {
+              console.warn(`⚠️ No se encontró schema para el array ${path}`);
+              return;
+            }
+          } catch (error) {
+            console.error(`❌ Error obteniendo schema para ${fullPath}:`, error);
+            return;
+          }
+        }
+
+        // Verificar si es un array de ObjectIds o un ObjectId único
+        const localField = `${path}.${nestedPath}`;
+        
+        // Lookup para poblar el campo
+        pipeline.push({
+          $lookup: {
+            from: refCollection,
+            localField: localField,
+            foreignField: '_id',
+            as: `${fullPath}_populated`
+          }
+        });
+
+        // Si es un array de referencias, mantener como array
+        // Si es una referencia única, hacer unwind
+        pipeline.push({
+          $addFields: {
+            [fullPath]: {
+              $cond: {
+                if: { $isArray: `$${localField}` },
+                then: `$${fullPath}_populated`,
+                else: { $arrayElemAt: [`$${fullPath}_populated`, 0] }
+              }
+            }
+          }
+        });
+
+        // Limpiar campo temporal
+        pipeline.push({
+          $unset: `${fullPath}_populated`
+        });
+      });
+
+      // Reagrupar los documentos por _id original
+      const groupStage: any = {
+        $group: {
+          _id: '$_originalId',
+          [path]: { $push: `$${path}` }
+        }
+      };
+
+      // Mantener todos los campos del documento raíz
+      const schema = model.schema;
+      schema.eachPath((pathName) => {
+        if (pathName !== '_id' && pathName !== path && !pathName.startsWith('_')) {
+          groupStage.$group[pathName] = { $first: `$${pathName}` };
+        }
+      });
+
+      pipeline.push(groupStage);
+
+      // Restaurar el _id original
+      pipeline.push({
+        $addFields: {
+          _id: '$_id'
+        }
+      });
+
+      pipeline.push({
+        $unset: '_originalId'
+      });
+    });
+
+    // Aplicar filtros de campos populados
     const populateMatchConditions: any = {};
     Object.keys(populateFilters).forEach(filterField => {
       const filterConfig = populateFilters[filterField];
@@ -292,7 +407,6 @@ export async function findWithFilters<T>(
         ? filterConfig 
         : { operator: 'eq', value: filterConfig };
 
-      // Usar el nombre original del campo (ya no necesitamos convertir)
       const fieldName = filterField;
       
       switch (operator) {
@@ -340,13 +454,12 @@ export async function findWithFilters<T>(
       }
     });
 
-    // Agregar $match para filtros de campos populados
     if (Object.keys(populateMatchConditions).length > 0) {
       pipeline.push({ $match: populateMatchConditions });
       console.log('🔍 Filtros aplicados a campos populados:', populateMatchConditions);
     }
 
-    // Agregar ordenamiento
+    // Ordenamiento
     if (Object.keys(sortOptions).length > 0) {
       pipeline.push({ $sort: sortOptions });
     } else {
@@ -359,22 +472,19 @@ export async function findWithFilters<T>(
   let items: T[];
   let totalItems: number;
 
-  // Usar agregación si hay campos populados o filtros en campos populados
-  if (populateFields.length > 0 || Object.keys(populateFilters).length > 0) {
-    console.log('🔗 Usando agregación con $lookup para campos populados');
+  // Usar agregación si hay campos populados o populate anidado
+  if (populateFields.length > 0 || nestedPopulate.length > 0 || Object.keys(populateFilters).length > 0) {
+    console.log('🔗 Usando agregación con $lookup');
     
     const pipeline = createAggregationPipeline();
     
-    // Pipeline para contar total
     const countPipeline = [...pipeline];
     countPipeline.push({ $count: "total" });
     
-    // Pipeline para obtener items con paginación
     const itemsPipeline = [...pipeline];
     itemsPipeline.push({ $skip: skip });
     itemsPipeline.push({ $limit: limit });
 
-    // Ejecutar ambos pipelines
     const [countResult, itemsResult] = await Promise.all([
       model.aggregate(countPipeline).exec(),
       model.aggregate(itemsPipeline).exec()
@@ -385,19 +495,16 @@ export async function findWithFilters<T>(
 
     console.log('📊 Pipeline de agregación usado:', JSON.stringify(pipeline, null, 2));
   } else {
-    // Usar método tradicional si no hay campos populados
     console.log('📋 Usando consulta tradicional sin $lookup');
     
     let query = model.find(filterQuery);
 
-    // Aplicar ordenamiento
     if (Object.keys(sortOptions).length > 0) {
       query = query.sort(sortOptions);
     } else {
       query = query.sort({ createdAt: -1 });
     }
 
-    // Ejecutar consultas
     totalItems = await model.countDocuments(filterQuery).exec();
     items = await query.skip(skip).limit(limit).exec();
   }
