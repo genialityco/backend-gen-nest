@@ -23,6 +23,7 @@ export const NewsSchema = new Schema(
         url: { type: String, required: true },
       },
     ],
+    isPublic: { type: Boolean, default: true },
   },
   { timestamps: true },
 );

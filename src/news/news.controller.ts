@@ -49,16 +49,10 @@ export class NewsController {
   }
 
   @Get()
-  async findAll(
-    @Query() paginationDto: PaginationDto,
-  ) {
+  async findAll(@Query() paginationDto: PaginationDto) {
     console.log('📥 Query params recibidos:', paginationDto); // Debug
-    
-    const result = await this.newsService.findWithFilters(
-     
-      paginationDto,
-      
-    );
+
+    const result = await this.newsService.findWithFilters(paginationDto);
 
     return {
       data: {
@@ -66,7 +60,7 @@ export class NewsController {
         totalItems: result.totalItems,
         totalPages: result.totalPages,
         currentPage: result.currentPage,
-      }
+      },
     };
   }
 
@@ -98,5 +92,21 @@ export class NewsController {
     return result
       ? new ResponseDto('success', 'Noticia eliminada', result)
       : new ResponseDto('error', 'No se pudo eliminar la noticia');
+  }
+
+  @Patch('public/:id')
+  @Put('public/:id')
+  async findPublic(@Param('id') id: string) {
+    try {
+      const result = await this.newsService.findOne(id);
+      if (result) {
+        const updated = await this.newsService.update(id, {
+          isPublic: !result.isPublic,
+        });
+        return updated;
+      }
+    } catch (error) {
+      console.error('Error toggling public status:', error);
+    }
   }
 }
