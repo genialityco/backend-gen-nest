@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString, IsOptional } from 'class-validator';
+import { IsNotEmpty, IsString, IsOptional, IsDateString } from 'class-validator';
 import { Types } from 'mongoose';
 
 export class CreateNewsDto {
@@ -23,4 +23,8 @@ export class CreateNewsDto {
 
   @IsOptional()
   readonly isPublic?: boolean | true;
+
+    @IsDateString()
+    @IsOptional()
+    readonly scheduledAt?: Date;
 }

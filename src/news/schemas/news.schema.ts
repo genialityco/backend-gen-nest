@@ -24,6 +24,7 @@ export const NewsSchema = new Schema(
       },
     ],
     isPublic: { type: Boolean, default: true },
+    scheduledAt: { type: Date, default: null },
   },
   { timestamps: true },
 );

@@ -6,6 +6,7 @@ import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { CreateNewsDto } from './dto/create-news.dto';
 import { UpdateNewsDto } from './dto/update-news.dto';
 import { findWithFilters } from 'src/common/common.service';
+import { Cron, CronExpression } from '@nestjs/schedule';
 
 @Injectable()
 export class NewsService {
@@ -70,4 +71,23 @@ export class NewsService {
   async remove(id: string): Promise<News | null> {
     return this.newsModel.findByIdAndDelete(id).exec();
   }
+
+  async processScheduledNews(): Promise<News[] | void> {
+      try {
+      const now = new Date();
+      //console.log("⏰ Procesando notificaciones programadas a las:", now);
+        // Buscar solo los que tienen scheduledAt definido, ya vencido, y no enviados
+        await this.newsModel.updateMany(
+          { scheduledAt: { $exists: true, $lte: now }, isPublic: false },
+          { $set: { isPublic: true } }
+        );
+    
+      } catch (error) {
+        console.error('Error al procesar notificaciones programadas:', error);
+      }
+    }
+      @Cron(CronExpression.EVERY_5_MINUTES)
+      async handleCron() {
+        await this.processScheduledNews();
+      }
 }
