@@ -66,22 +66,26 @@ export class NotificationsService {
     data: any = {},
     iconUrl?: string,
   ): Promise<void> {
+    const template = await this.notificationTemplateModel.findById(data.recordId);
+    if (!template) {
+      throw new NotFoundError('Template not found');
+    }
     const message = {
       to: expoPushToken,
       sound: 'default',
       title,
       body,
-      data,
+      data: template.data,
       icon: iconUrl || this.defaultIconUrl,
     };
-
+    console.log("data", data)
     try {
       // Crear y guardar la notificación en la base de datos
       const notificationData: CreateNotificationDto = {
         userId: data.userId,
         title,
         body,
-        data,
+        data: template.data,
         isRead: false,
       };
       await this.createNotification(notificationData);
