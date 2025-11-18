@@ -237,10 +237,11 @@ export class NotificationsService {
 async processScheduledNotifications(): Promise<NotificationTemplate[] | void> {
     try {
     const now = new Date();
+    const oneDayLater = new Date(now.getTime() + 24 * 60 * 60 * 1000);
     //console.log("⏰ Procesando notificaciones programadas a las:", now);
       // Buscar solo los que tienen scheduledAt definido, ya vencido, y no enviados
       const templates = await this.notificationTemplateModel.find({
-        scheduledAt: { $exists: true, $lte: now },
+        scheduledAt: { $exists: true, $lte: now, $gte: oneDayLater },
         isSent: false,
       });
       //return templates;
