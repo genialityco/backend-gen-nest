@@ -75,10 +75,11 @@ export class NewsService {
   async processScheduledNews(): Promise<News[] | void> {
       try {
       const now = new Date();
+      const oneDayLater = new Date(now.getTime() + 24 * 60 * 60 * 1000);
       //console.log("⏰ Procesando notificaciones programadas a las:", now);
         // Buscar solo los que tienen scheduledAt definido, ya vencido, y no enviados
         await this.newsModel.updateMany(
-          { scheduledAt: { $exists: true, $lte: now }, isPublic: false },
+          { scheduledAt: { $exists: true, $lte: now , $gte: oneDayLater }, isPublic: false,  },
           { $set: { isPublic: true } }
         );
     
