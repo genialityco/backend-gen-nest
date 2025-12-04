@@ -76,13 +76,12 @@ export class AttendeeController {
 
   @Put('certificate-download')
   async incrementCertificateDownloads(
-    @Body('userId') userId: string,
-    @Body('memberId') memberId: string,
+    @Body('attendeeId') attendeeId: string,
   ): Promise<ResponseDto<Attendee>> {
     try {
       const result = await this.attendeeService.incrementCertificateDownloads({
-        userId,
-        memberId,
+        attendeeId,
+       
       });
 
       return result
