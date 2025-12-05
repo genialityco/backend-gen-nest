@@ -3,6 +3,7 @@ import { Document, Types } from 'mongoose';
 export interface EventInterface extends Document {
   readonly name: string;
   readonly description?: string;
+  readonly type?: string;
   organizationId?: Types.ObjectId;
   readonly startDate: Date;
   readonly endDate: Date;

@@ -4,6 +4,7 @@ export const EventSchema = new mongoose.Schema(
   {
     name: { type: String, required: true },
     description: { type: String, required: false },
+    type: { type: String, required: false },
     organizationId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Organization',
