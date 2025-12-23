@@ -9,6 +9,8 @@ export interface News extends Document {
   readonly createdAt: Date;
   readonly updatedAt: Date;
   isPublic?: boolean | true;
+  scheduledAt?: Date;
+  publishedAt?: Date;
   documents?: {
     id: string;
     name: string;
