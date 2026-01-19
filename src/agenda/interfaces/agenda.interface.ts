@@ -9,5 +9,6 @@ export interface Agenda {
     speakers: Types.ObjectId[];
     module?: Types.ObjectId;
     room?: string;
+    featured?: boolean;
   }[];
 }

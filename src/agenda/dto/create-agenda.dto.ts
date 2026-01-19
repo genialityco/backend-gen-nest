@@ -6,6 +6,7 @@ import {
   IsMongoId,
   IsISO8601,
   ArrayNotEmpty,
+  IsBoolean,
 } from 'class-validator';
 
 export class CreateAgendaDto {
@@ -43,4 +44,8 @@ export class SessionDto {
   @IsOptional()
   @IsString()
   readonly room?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  readonly featured?: boolean;
 }

@@ -19,6 +19,7 @@ export const AgendaSchema = new mongoose.Schema(
           required: false,
         },
         room: { type: String, required: false },
+        featured: { type: Boolean, required: false },
       },
     ],
   },
