@@ -12,92 +12,21 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 export class NewsService {
   constructor(@InjectModel('News') private newsModel: Model<News>) {}
 
-  private normalizeMediaUrl(url: any): string | null {
-    if (typeof url !== 'string') return null;
-
-    const trimmed = url.trim();
-    if (!trimmed || trimmed.toLowerCase() === 'null') return null;
-
-    // 1) Corrige doble-encoding: %25XX -> %XX (ej: %2520 -> %20)
-    let fixed = trimmed.replace(/%25([0-9A-Fa-f]{2})/g, '%$1');
-
-    // 2) Cambia espacios por %20 (por si quedó alguno)
-    fixed = fixed.replace(/ /g, '%20');
-
-    return fixed;
-  }
-
-  private normalizeVideosInHtml(html?: string): string {
-    if (!html) return html;
-
-    let out = html.replace(
-      /<video([^>]*?)\ssrc="([^"]+)"([^>]*)>\s*<\/video>/gi,
-      (_match, pre, src, post) => {
-        const safeSrc = this.normalizeMediaUrl(src);
-
-        // 🚫 Si no hay URL válida, eliminamos el bloque de video (o podrías devolver un placeholder)
-        if (!safeSrc) return '';
-
-        const attrs = `${pre} ${post}`;
-
-        const hasControls = /\scontrols(\s|=|>)/i.test(attrs);
-        const hasMuted = /\smuted(\s|=|>)/i.test(attrs);
-        const hasPreload = /\spreload(\s*=\s*")/i.test(attrs);
-        const hasPlaysInline = /\splaysinline(\s|=|>)/i.test(attrs);
-
-        const injected =
-          `${pre} ${post}` +
-          (hasControls ? '' : ' controls') +
-          (hasMuted ? '' : ' muted') +
-          (hasPreload ? '' : ` preload="metadata"`) +
-          (hasPlaysInline ? '' : ' playsinline webkit-playsinline');
-
-        const styleMatch = injected.match(/\sstyle="([^"]*)"/i);
-        const existingStyle = styleMatch?.[1] ?? '';
-        const mergedStyle =
-          `${existingStyle}; max-width:100%; display:block; margin:10px auto; background:#000;`
-            .replace(/;;+/g, ';')
-            .trim();
-
-        const withoutStyle = injected.replace(/\sstyle="[^"]*"/i, '');
-
-        return `
-<video ${withoutStyle} style="${mergedStyle}">
-  <source src="${safeSrc}" type="video/mp4" />
-</video>
-      `.trim();
-      },
-    );
-
-    // Si ya existía <source src="...">, solo arreglamos el src
-    out = out.replace(
-      /<source([^>]*?)\ssrc="([^"]+)"([^>]*?)\/?>/gi,
-      (_m, a, src, b) => {
-        const safeSrc = this.normalizeMediaUrl(src);
-        if (!safeSrc) return ''; // si es inválido, eliminamos el source
-        return `<source${a} src="${safeSrc}"${b} />`;
-      },
-    );
-
-    return out;
-  }
-
   // Crear una nueva noticia (soporta documentos adjuntos)
   async create(createNewsDto: CreateNewsDto): Promise<News> {
-    const newsData = { ...createNewsDto };
-    if (newsData.content) {
-      newsData.content = this.normalizeVideosInHtml(newsData.content);
-    }
-    const newNews = new this.newsModel(newsData);
+    // createNewsDto.documents debe ser un array de objetos { id, name, type, url } si se provee
+    const newNews = new this.newsModel(createNewsDto);
     return newNews.save();
   }
 
+  // Actualizar una noticia por ID (soporta documentos adjuntos)
   async update(id: string, updateNewsDto: UpdateNewsDto): Promise<News | null> {
-    const newsData = { ...updateNewsDto };
-    if (newsData.content) {
-      newsData.content = this.normalizeVideosInHtml(newsData.content);
-    }
-    return this.newsModel.findByIdAndUpdate(id, newsData, { new: true }).exec();
+    // updateNewsDto.documents debe ser un array de objetos { id, name, type, url } si se provee
+    return this.newsModel
+      .findByIdAndUpdate(id, updateNewsDto, {
+        new: true,
+      })
+      .exec();
   }
 
   // Obtener todas las noticias con paginación
@@ -118,17 +47,19 @@ export class NewsService {
   }
 
   // Buscar noticias con filtros y paginación
-  async findWithFilters(paginationDto: PaginationDto): Promise<{
+  async findWithFilters(
+    paginationDto: PaginationDto,
+  ): Promise<{
     items: News[];
     totalItems: number;
     totalPages: number;
     currentPage: number;
   }> {
-    return findWithFilters<News>(
-      this.newsModel,
-      paginationDto,
-      paginationDto.filters,
-    );
+   return findWithFilters<News>(
+           this.newsModel,
+           paginationDto,
+           paginationDto.filters
+         );
   }
 
   // Obtener una noticia por ID
@@ -142,24 +73,22 @@ export class NewsService {
   }
 
   async processScheduledNews(): Promise<News[] | void> {
-    try {
+      try {
       const now = new Date();
       const oneDayBefore = new Date(now.getTime() - 24 * 60 * 60 * 1000);
       //console.log("⏰ Procesando notificaciones programadas a las:", now);
-      // Buscar solo los que tienen scheduledAt definido, ya vencido, y no enviados
-      await this.newsModel.updateMany(
-        {
-          scheduledAt: { $exists: true, $lte: now, $gte: oneDayBefore },
-          isPublic: false,
-        },
-        { $set: { isPublic: true } },
-      );
-    } catch (error) {
-      console.error('Error al procesar notificaciones programadas:', error);
+        // Buscar solo los que tienen scheduledAt definido, ya vencido, y no enviados
+        await this.newsModel.updateMany(
+          { scheduledAt: { $exists: true, $lte: now , $gte: oneDayBefore }, isPublic: false,  },
+          { $set: { isPublic: true } }
+        );
+    
+      } catch (error) {
+        console.error('Error al procesar notificaciones programadas:', error);
+      }
     }
-  }
-  @Cron(CronExpression.EVERY_5_MINUTES)
-  async handleCron() {
-    await this.processScheduledNews();
-  }
+      @Cron(CronExpression.EVERY_5_MINUTES)
+      async handleCron() {
+        await this.processScheduledNews();
+      }
 }
