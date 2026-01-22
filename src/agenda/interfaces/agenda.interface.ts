@@ -9,6 +9,14 @@ export interface Agenda {
     speakers: Types.ObjectId[];
     module?: Types.ObjectId;
     room?: string;
-    featured?: boolean;
+    typeSession?: string;
+    subSessions?: {
+      title: string;
+      startDateTime: Date;
+      endDateTime: Date;
+      speakers?: Types.ObjectId[];
+      module?: Types.ObjectId;
+      room?: string;
+    }[];
   }[];
 }

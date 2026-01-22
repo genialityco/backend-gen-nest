@@ -19,7 +19,23 @@ export const AgendaSchema = new mongoose.Schema(
           required: false,
         },
         room: { type: String, required: false },
-        featured: { type: Boolean, required: false },
+        typeSession: { type: String, required: false },
+        subSessions: [
+          {
+            title: { type: String, required: true },
+            startDateTime: { type: Date, required: true },
+            endDateTime: { type: Date, required: true },
+            speakers: [
+              { type: mongoose.Schema.Types.ObjectId, ref: 'Speaker' },
+            ],
+            moduleId: {
+              type: mongoose.Schema.Types.ObjectId,
+              ref: 'Module',
+              required: false,
+            },
+            room: { type: String, required: false },
+          },
+        ],
       },
     ],
   },

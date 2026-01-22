@@ -6,7 +6,6 @@ import {
   IsMongoId,
   IsISO8601,
   ArrayNotEmpty,
-  IsBoolean,
 } from 'class-validator';
 
 export class CreateAgendaDto {
@@ -46,6 +45,36 @@ export class SessionDto {
   readonly room?: string;
 
   @IsOptional()
-  @IsBoolean()
-  readonly featured?: boolean;
+  @IsString()
+  readonly typeSession?: string;
+
+  @IsOptional()
+  @IsArray()
+  readonly subSessions?: subSessionDto[];
+}
+export class subSessionDto {
+  @IsString()
+  @IsNotEmpty()
+  readonly title: string;
+
+  @IsISO8601()
+  @IsNotEmpty()
+  readonly startDateTime: string;
+
+  @IsISO8601()
+  @IsNotEmpty()
+  readonly endDateTime: string;
+
+  @IsArray()
+  @ArrayNotEmpty()
+  @IsMongoId({ each: true })
+  readonly speakers: string[];
+
+  @IsOptional()
+  @IsMongoId()
+  readonly moduleId?: string;
+
+  @IsOptional()
+  @IsString()
+  readonly room?: string;
 }
