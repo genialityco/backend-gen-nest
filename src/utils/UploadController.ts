@@ -68,7 +68,7 @@ export class UploadController {
     const token = uuidv4();
 
     await blob.save(file.buffer, {
-      gzip: true,
+      gzip: false,
       resumable: false,
       metadata: {
         // Si llega vacío, al menos no rompes:
