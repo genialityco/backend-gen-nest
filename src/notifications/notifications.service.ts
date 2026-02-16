@@ -66,7 +66,9 @@ export class NotificationsService {
     data: any = {},
     iconUrl?: string,
   ): Promise<void> {
-    const template = await this.notificationTemplateModel.findById(data.recordId);
+    const template = await this.notificationTemplateModel.findById(
+      data.recordId,
+    );
     if (!template) {
       throw new NotFoundError('Template not found');
     }
@@ -78,7 +80,7 @@ export class NotificationsService {
       data: template.data,
       icon: iconUrl || this.defaultIconUrl,
     };
-    console.log("data", data)
+    console.log('data', data);
     try {
       // Crear y guardar la notificación en la base de datos
       const notificationData: CreateNotificationDto = {
@@ -89,7 +91,7 @@ export class NotificationsService {
         isRead: false,
       };
       await this.createNotification(notificationData);
-      
+
       // Enviar la notificación push
       const response = await axios.post(this.expoPushUrl, message, {
         headers: {
@@ -234,14 +236,16 @@ export class NotificationsService {
     }
     return result;
   }
-async processScheduledNotifications(): Promise<NotificationTemplate[] | void> {
+  async processScheduledNotifications(): Promise<
+    NotificationTemplate[] | void
+  > {
     try {
-    const now = new Date();
-    
-    //console.log("⏰ Procesando notificaciones programadas a las:", now);
+      const now = new Date();
+
+      //console.log("⏰ Procesando notificaciones programadas a las:", now);
       // Buscar solo los que tienen scheduledAt definido, ya vencido, y no enviados
       const templates = await this.notificationTemplateModel.find({
-        scheduledAt: { $exists: true, $lte: now,},
+        scheduledAt: { $exists: true, $lte: now },
         isSent: false,
       });
       //return templates;
@@ -252,27 +256,27 @@ async processScheduledNotifications(): Promise<NotificationTemplate[] | void> {
           await this.sendFromTemplate(template._id.toString());
         }
         //  for (const template of templates) {
-      //   console.log(`Enviando notificación programada: ${template.title}`);
-      //   await this.sendPushNotification(
+        //   console.log(`Enviando notificación programada: ${template.title}`);
+        //   await this.sendPushNotification(
 
-      //     "ExponentPushToken[_g4P3PCYK5upzQP-hJ7ejB]",
-      //     template.title,
-      //     template.body,
-      //     {userId: "672aae62778fcbf45a20c475"},
-      //     this.defaultIconUrl
-      //   );
-      //   await this.notificationTemplateModel.findByIdAndUpdate(template._id, {
-       
-      //   isSent: true, // Marcar como enviado
-      // });
-      // }
-    }
+        //     "ExponentPushToken[_g4P3PCYK5upzQP-hJ7ejB]",
+        //     template.title,
+        //     template.body,
+        //     {userId: "672aae62778fcbf45a20c475"},
+        //     this.defaultIconUrl
+        //   );
+        //   await this.notificationTemplateModel.findByIdAndUpdate(template._id, {
+
+        //   isSent: true, // Marcar como enviado
+        // });
+        // }
+      }
     } catch (error) {
       console.error('Error al procesar notificaciones programadas:', error);
     }
   }
-    @Cron(CronExpression.EVERY_MINUTE)
-    async handleCron() {
-      await this.processScheduledNotifications();
-    }
+  @Cron(CronExpression.EVERY_MINUTE)
+  async handleCron() {
+    await this.processScheduledNotifications();
+  }
 }

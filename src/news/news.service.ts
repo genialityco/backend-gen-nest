@@ -14,6 +14,10 @@ export class NewsService {
 
   // Crear una nueva noticia (soporta documentos adjuntos)
   async create(createNewsDto: CreateNewsDto): Promise<News> {
+    // Si hay scheduledAt, asegurar que isPublic sea false
+    if (createNewsDto.scheduledAt) {
+      createNewsDto.isPublic = false;
+    }
     // createNewsDto.documents debe ser un array de objetos { id, name, type, url } si se provee
     const newNews = new this.newsModel(createNewsDto);
     return newNews.save();

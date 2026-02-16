@@ -23,7 +23,7 @@ export const NewsSchema = new Schema(
         url: { type: String, required: true },
       },
     ],
-    isPublic: { type: Boolean, default: true },
+    isPublic: { type: Boolean, default: false },
     scheduledAt: { type: Date, default: null },
     publishedAt: { type: Date, default: null },
   },

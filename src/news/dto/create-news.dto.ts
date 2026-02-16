@@ -27,7 +27,7 @@ export class CreateNewsDto {
   readonly featuredImage?: string;
 
   @IsOptional()
-  readonly isPublic?: boolean | true;
+  readonly isPublic?: boolean;
 
   @IsDateString()
   @IsOptional()
