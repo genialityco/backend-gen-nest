@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import { AttendeeModule } from './attendee/attendee.module';
 import { CertificateModule } from './certificate/certificate.module';
 import { EventModule } from './event/event.module';
@@ -25,6 +26,7 @@ import { NotificationTemplateModule } from './notification-template/notification
 @Module({
   imports: [
     ConfigModule.forRoot(),
+    ScheduleModule.forRoot(),
     MongooseModule.forRoot(process.env.MONGO_URI),
     MulterModule.register({
       dest: './uploads',

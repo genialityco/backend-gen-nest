@@ -14,6 +14,8 @@ export class NewsService {
 
   // Crear una nueva noticia (soporta documentos adjuntos)
   async create(createNewsDto: CreateNewsDto): Promise<News> {
+    // SIEMPRE guardar con isPublic = false (privada por defecto)
+    createNewsDto.isPublic = false;
     // Si hay scheduledAt, asegurar que isPublic sea false
     if (createNewsDto.scheduledAt) {
       createNewsDto.isPublic = false;
@@ -76,23 +78,36 @@ export class NewsService {
     return this.newsModel.findByIdAndDelete(id).exec();
   }
 
-  async processScheduledNews(): Promise<News[] | void> {
-      try {
+  async processScheduledNews(): Promise<void> {
+    try {
       const now = new Date();
-      const oneDayBefore = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-      //console.log("⏰ Procesando notificaciones programadas a las:", now);
-        // Buscar solo los que tienen scheduledAt definido, ya vencido, y no enviados
-        await this.newsModel.updateMany(
-          { scheduledAt: { $exists: true, $lte: now , $gte: oneDayBefore }, isPublic: false,  },
-          { $set: { isPublic: true } }
-        );
-    
-      } catch (error) {
-        console.error('Error al procesar notificaciones programadas:', error);
+      console.log('⏰ Procesando noticias programadas a las:', now);
+      
+      // Buscar noticias que deben ser publicadas (nunca han sido publicadas automáticamente)
+      const result = await this.newsModel.updateMany(
+        { 
+          scheduledAt: { $exists: true, $lte: now }, 
+          isPublic: false,
+          publishedAt: null  // Solo si aún no ha sido publicada automáticamente
+        },
+        { 
+          $set: { 
+            isPublic: true,
+            publishedAt: now  // Registrar cuándo se publicó automáticamente
+          } 
+        }
+      );
+      
+      if (result.modifiedCount > 0) {
+        console.log(`✅ ${result.modifiedCount} noticia(s) publicada(s) automáticamente`);
       }
+    } catch (error) {
+      console.error('❌ Error al procesar notificaciones programadas:', error);
     }
-      @Cron(CronExpression.EVERY_5_MINUTES)
-      async handleCron() {
-        await this.processScheduledNews();
-      }
+  }
+
+  @Cron(CronExpression.EVERY_5_MINUTES)
+  async handleCron() {
+    await this.processScheduledNews();
+  }
 }

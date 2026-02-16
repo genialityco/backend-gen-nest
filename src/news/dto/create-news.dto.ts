@@ -9,31 +9,31 @@ import { Types } from 'mongoose';
 export class CreateNewsDto {
   @IsString()
   @IsNotEmpty()
-  readonly title: string;
+  title: string;
 
   @IsString()
   @IsNotEmpty()
-  readonly content: string;
+  content: string;
 
   @IsNotEmpty()
-  readonly organizationId: Types.ObjectId;
+  organizationId: Types.ObjectId;
 
   @IsString()
   @IsOptional()
-  readonly eventId: Types.ObjectId;
+  eventId: Types.ObjectId;
 
   @IsString()
   @IsOptional()
-  readonly featuredImage?: string;
+  featuredImage?: string;
 
   @IsOptional()
-  readonly isPublic?: boolean;
-
-  @IsDateString()
-  @IsOptional()
-  readonly scheduledAt?: Date;
+  isPublic?: boolean;
 
   @IsDateString()
   @IsOptional()
-  readonly publishedAt?: Date;
+  scheduledAt?: Date;
+
+  @IsDateString()
+  @IsOptional()
+  publishedAt?: Date;
 }
