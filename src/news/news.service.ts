@@ -27,6 +27,11 @@ export class NewsService {
 
   // Actualizar una noticia por ID (soporta documentos adjuntos)
   async update(id: string, updateNewsDto: UpdateNewsDto): Promise<News | null> {
+    // Si cambian la fecha programada y ya fue publicada, limpiar publishedAt
+    // para que el cron pueda reprocesarla con la nueva fecha
+    if (updateNewsDto.scheduledAt) {
+      updateNewsDto.publishedAt = null;
+    }
     // updateNewsDto.documents debe ser un array de objetos { id, name, type, url } si se provee
     return this.newsModel
       .findByIdAndUpdate(id, updateNewsDto, {
