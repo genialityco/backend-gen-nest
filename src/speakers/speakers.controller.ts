@@ -25,6 +25,8 @@ export class SpeakersController {
     @Query() filters: Partial<Speaker>,
     @Query() paginationDto: PaginationDto,
   ): Promise<ResponseDto<any>> {
+    console.log('📥 [SEARCH] Query params recibidos:', paginationDto);
+    
     const result = await this.speakersService.findWithFilters(
  
       paginationDto,

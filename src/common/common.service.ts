@@ -451,17 +451,16 @@ export async function findWithFilters<T>(
 
     if (Object.keys(populateMatchConditions).length > 0) {
       pipeline.push({ $match: populateMatchConditions });
-      console.log(
-        '🔍 Filtros aplicados a campos populados:',
-        populateMatchConditions,
-      );
+      
     }
 
-    if (Object.keys(sortOptions).length > 0) {
-      pipeline.push({ $sort: sortOptions });
-    } else {
-      pipeline.push({ $sort: { createdAt: -1 } });
-    }
+    // Agregar _id como ordenamiento secundario para garantizar consistencia en paginación
+    const finalSortOptions =
+      Object.keys(sortOptions).length > 0
+        ? { ...sortOptions, _id: 1 }
+        : { createdAt: -1, _id: 1 };
+
+    pipeline.push({ $sort: finalSortOptions });
 
     return pipeline;
   }
@@ -488,30 +487,22 @@ export async function findWithFilters<T>(
 
     totalItems = countResult.length > 0 ? countResult[0].total : 0;
     items = itemsResult as T[];
-
-    console.log(
-      '📊 Pipeline de agregación usado:',
-      JSON.stringify(pipeline, null, 2),
-    );
   } else {
-    console.log('📋 Usando consulta tradicional sin $lookup');
-
     let query = model.find(filterQuery);
 
-    query =
+    // Agregar _id como ordenamiento secundario para garantizar consistencia en paginación
+    const finalSortOptions =
       Object.keys(sortOptions).length > 0
-        ? query.sort(sortOptions)
-        : query.sort({ createdAt: -1 });
+        ? { ...sortOptions, _id: 1 }
+        : { createdAt: -1, _id: 1 };
+
+    query = query.sort(finalSortOptions);
 
     totalItems = await model.countDocuments(filterQuery).exec();
     items = await query.skip(skip).limit(limit).exec();
   }
 
   const totalPages = Math.ceil(totalItems / limit);
-
-  console.log(
-    `📊 Resultado: ${items.length} items de ${totalItems} total (página ${page}/${totalPages})`,
-  );
 
   return {
     items,
