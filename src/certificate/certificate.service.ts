@@ -28,7 +28,10 @@ export class CertificateService {
       )
       .exec();
   }
-  
+
+  async findByEventAndUser(eventId: string, userId: string): Promise<Certificate | null> {
+    return this.certificateModel.findOne({ eventId, userId }).exec();
+  }
 
   async findWithFilters(filters: Partial<Certificate>): Promise<Certificate[]> {
     const filterQuery: FilterQuery<Certificate> = {};

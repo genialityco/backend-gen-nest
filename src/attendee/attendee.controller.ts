@@ -8,7 +8,12 @@ import {
   Body,
   Query,
   ValidationPipe,
+  UseGuards,
+  UseInterceptors,
+  Request,
 } from '@nestjs/common';
+import { FirebaseAuthGuard } from '../auth/guards/auth.guard';
+import { InjectUserInterceptor } from '../common/interceptors/inject-user.interceptor';
 import { AttendeeService } from './attendee.service';
 import { CreateAttendeeDto } from './dto/create-attendee.dto';
 import { UpdateAttendeeDto } from './dto/update-attendee.dto';
@@ -65,6 +70,8 @@ export class AttendeeController {
   }
 
   @Post()
+  @UseGuards(FirebaseAuthGuard)
+  @UseInterceptors(InjectUserInterceptor)
   async create(
     @Body(new ValidationPipe()) createAttendeeDto: CreateAttendeeDto,
   ): Promise<ResponseDto<Attendee>> {
@@ -93,6 +100,8 @@ export class AttendeeController {
   }
 
   @Put(':id')
+  @UseGuards(FirebaseAuthGuard)
+  @UseInterceptors(InjectUserInterceptor)
   async update(
     @Param('id') id: string,
     @Body(new ValidationPipe()) updateAttendeeDto: UpdateAttendeeDto,

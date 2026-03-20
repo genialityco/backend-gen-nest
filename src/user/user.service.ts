@@ -1,5 +1,5 @@
 /* eslint-disable prefer-const */
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, FilterQuery } from 'mongoose';
 import { User } from './interfaces/user.interface';
@@ -10,6 +10,7 @@ import { Member } from 'src/member/interfaces/member.interface';
 import * as admin from 'firebase-admin';
 import { Attendee } from 'src/attendee/interfaces/attendee.interface';
 import { UserFirebase } from './schemas/user.schema';
+import { EmailValidator } from './utils/email.validator';
 
 @Injectable()
 export class UserService {
@@ -115,9 +116,20 @@ async addOrCreateAttendee(payload: {
 }) {
   const { user, attendee, member } = payload;
 
+  // 🔹 VALIDAR Y LIMPIAR EMAIL
+  const emailValidation = EmailValidator.cleanAndValidateEmail(user.email);
+  if (!emailValidation.success) {
+    throw new BadRequestException(
+      `Email inválido: "${user.email}" - Razón: ${emailValidation.error}`
+    );
+  }
+
+  // Usar el email limpio
+  const cleanEmail = emailValidation.email!;
+
   // 🔹 1. Buscar member existente por email
   let existingMember = await this.memberModel.findOne({ 
-    'properties.email': user.email,
+    'properties.email': cleanEmail,
     organizationId: member.organizationId 
   }).populate('userId');
 
@@ -129,16 +141,19 @@ async addOrCreateAttendee(payload: {
     // ✅ CASO 1: Usuario existe en miembros Y tiene userId
     // Validar que hay cuenta en Firebase
     try {
-      firebaseUser = await admin.auth().getUserByEmail(user.email);
+      firebaseUser = await admin.auth().getUserByEmail(cleanEmail);
     } catch (error: any) {
       if (error.code === 'auth/user-not-found') {
-        throw new Error(`Usuario ${user.email} existe en miembros pero no tiene cuenta en Firebase`);
+        throw new Error(`Usuario ${cleanEmail} existe en miembros pero no tiene cuenta en Firebase`);
       }
       throw error;
     }
 
-    // Usar el usuario existente
-    mongoUser = existingMember.userId;
+    // Usar el usuario existente - buscar el usuario completo por ID
+    mongoUser = await this.userModel.findById(existingMember.userId);
+    if (!mongoUser) {
+      throw new Error(`Usuario referenciado en member no encontrado`);
+    }
     
     // Actualizar member haciendo merge de data
     mongoMember = existingMember;
@@ -147,17 +162,15 @@ async addOrCreateAttendee(payload: {
     await mongoMember.save();
 
     console.log('Member actualizado con merge de datos');
+    console.log(`mongoUser._id en CASO 1:`, mongoUser._id);
 
   } else {
-    // ✅ CASO 2: No existe member ni user - crear todo de cero
-    
-    // 2a. Firebase: crear usuario
     try {
-      firebaseUser = await admin.auth().getUserByEmail(user.email);
+      firebaseUser = await admin.auth().getUserByEmail(cleanEmail);
     } catch (error: any) {
       if (error.code === 'auth/user-not-found') {
         firebaseUser = await admin.auth().createUser({
-          email: user.email,
+          email: cleanEmail,
           password: user.password ?? Math.random().toString(36).slice(-8),
         });
         console.log('Usuario creado en Firebase');
@@ -171,7 +184,7 @@ async addOrCreateAttendee(payload: {
     if (!mongoUser) {
       mongoUser = await this.userModel.create({
         firebaseUid: firebaseUser.uid,
-        email: user.email, // Asegurar que el email esté en el user
+        email: cleanEmail, // Asegurar que el email esté en el user
       });
       console.log('Usuario creado en MongoDB');
     }
@@ -182,7 +195,7 @@ async addOrCreateAttendee(payload: {
       organizationId: member.organizationId,
       memberActive: member.memberActive ?? true,
       properties: {
-        email: user.email, // Asegurar que el email esté en properties para futuras búsquedas
+        email: cleanEmail, // Asegurar que el email esté en properties para futuras búsquedas
         ...member.properties
       },
     });
@@ -195,25 +208,33 @@ async addOrCreateAttendee(payload: {
     memberId: mongoMember._id
   });
 
+  console.log(`Buscando attendee con eventId: ${attendee.eventId}, memberId: ${mongoMember._id}`);
+  console.log(`Attendee encontrado:`, mongoAttendee);
+  console.log(`mongoUser._id:`, mongoUser._id);
+  console.log(`mongoMember._id:`, mongoMember._id);
+
   if (!mongoAttendee) {
+    console.log('Creando nuevo attendee...');
     mongoAttendee = await this.attendeeModel.create({
       eventId: attendee.eventId,
       userId: mongoUser._id,
       memberId: mongoMember._id,
-      attended: true,
+      attended: attendee.attended ?? true,
       certificationHours: attendee.certificationHours,
       typeAttendee: attendee.typeAttendee,
       certificateDownloads: attendee.certificateDownloads ?? 0,
     });
-    console.log('Attendee creado');
+    console.log('Attendee creado con userId:', mongoAttendee.userId);
   } else {
+    console.log('Attendee ya existe, actualizando...');
     // Si ya existe, actualizar
-    mongoAttendee.attended = true;
+    mongoAttendee.attended = attendee.attended ?? mongoAttendee.attended ?? true;
+    mongoAttendee.userId = mongoAttendee.userId || mongoUser._id;
     mongoAttendee.certificationHours = attendee.certificationHours ?? mongoAttendee.certificationHours;
     mongoAttendee.typeAttendee = attendee.typeAttendee ?? mongoAttendee.typeAttendee;
     mongoAttendee.certificateDownloads = attendee.certificateDownloads ?? mongoAttendee.certificateDownloads;
     await mongoAttendee.save();
-    console.log('Attendee actualizado');
+    console.log('Attendee actualizado con userId:', mongoAttendee.userId);
   }
 
   // 🔹 Resultado final

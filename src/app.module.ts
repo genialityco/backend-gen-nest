@@ -18,11 +18,13 @@ import { SurveyModule } from './survey/survey.module';
 import { PostersModule } from './posters/posters.module';
 import { NewsModule } from './news/news.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { AuthModule } from './auth/auth.module';
 
 import { MulterModule } from '@nestjs/platform-express';
 import { UploadController } from './utils/UploadController';
 import { HighlightsModule } from './highlights/highlights.module';
 import { NotificationTemplateModule } from './notification-template/notification-template.module';
+
 @Module({
   imports: [
     ConfigModule.forRoot(),
@@ -46,6 +48,7 @@ import { NotificationTemplateModule } from './notification-template/notification
     PostersModule,
     NewsModule,
     NotificationsModule,
+    AuthModule,
     HighlightsModule,
     NotificationTemplateModule
   ],

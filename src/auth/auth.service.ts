@@ -17,5 +17,12 @@ export class AuthService {
   async getUser(uid: string) {
     return admin.auth().getUser(uid);
   }
-  
+
+  async resetPassword(userId: string, newPassword: string): Promise<void> {
+    try {
+      await admin.auth().updateUser(userId, { password: newPassword });
+    } catch (error) {
+      throw new Error(`Error al restablecer la contraseña: ${error.message}`);
+    }
+  }
 }

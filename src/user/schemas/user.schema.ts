@@ -5,6 +5,7 @@ import { Member } from 'src/member/interfaces/member.interface';
 export const UserSchema = new Schema(
   {
     firebaseUid: { type: String, required: true },
+    email: { type: String, required: false },
     expoPushToken: { type: String, required: false },
   },
   { timestamps: true },

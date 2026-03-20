@@ -15,6 +15,11 @@ export class AttendeeService {
 
   // Crear un nuevo asistente
   async create(attendeeData: CreateAttendeeDto): Promise<Attendee> {
+    // Validar que userId esté presente
+    if (!attendeeData.userId) {
+      throw new Error('userId es requerido para crear un asistente');
+    }
+
     const newAttendee = new this.attendeeModel(attendeeData);
     return newAttendee.save();
   }
@@ -24,6 +29,11 @@ export class AttendeeService {
     id: string,
     attendeeDto: UpdateAttendeeDto,
   ): Promise<Attendee | null> {
+    // Validar que userId esté presente si se intenta actualizar
+    if (attendeeDto.userId === null || (attendeeDto.userId === undefined && Object.keys(attendeeDto).includes('userId'))) {
+      throw new Error('userId no puede ser nulo');
+    }
+
     return this.attendeeModel
       .findByIdAndUpdate(id, attendeeDto, { new: true })
       .exec();
@@ -42,6 +52,9 @@ export class AttendeeService {
     const totalItems = await this.attendeeModel.countDocuments().exec();
     const items = await this.attendeeModel
       .find()
+      .populate('eventId')
+      .populate('userId')
+      .populate('memberId')
       .skip(skip)
       .limit(limit)
       .exec();
@@ -106,6 +119,7 @@ export class AttendeeService {
     return this.attendeeModel
       .findById(id)
       .populate('eventId')
+      .populate('userId')
       .populate('memberId')
       .exec();
   }

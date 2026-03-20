@@ -5,7 +5,7 @@ export const AttendeeSchema = new mongoose.Schema(
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      required: false,
+      required: true,
     },
     eventId: {
       type: mongoose.Schema.Types.ObjectId,
