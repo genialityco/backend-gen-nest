@@ -2,9 +2,39 @@ import {
   IsNotEmpty,
   IsString,
   IsOptional,
-  IsDateString,
+  ValidateIf,
+  ValidationArguments,
+  ValidatorConstraint,
+  ValidatorConstraintInterface,
+  registerDecorator,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 import { Types } from 'mongoose';
+
+// Validador custom para verificar que scheduledAt sea fecha futura
+@ValidatorConstraint({ name: 'IsFutureDate', async: false })
+export class IsFutureDateConstraint implements ValidatorConstraintInterface {
+  validate(value: any) {
+    if (!value) return true; // Si es null/undefined, ValidationPipe lo filtra
+    const date = new Date(value);
+    return date > new Date(); // Debe ser mayor a ahora
+  }
+
+  defaultMessage(args: ValidationArguments) {
+    return 'scheduledAt debe ser una fecha futura';
+  }
+}
+
+export function IsFutureDate() {
+  return function (target: any, propertyName: string) {
+    registerDecorator({
+      target: target.constructor,
+      propertyName: propertyName,
+      constraints: [],
+      validator: IsFutureDateConstraint,
+    });
+  };
+}
 
 export class CreateNewsDto {
   @IsString()
@@ -29,11 +59,13 @@ export class CreateNewsDto {
   @IsOptional()
   isPublic?: boolean;
 
-  @IsDateString()
   @IsOptional()
+  @Type(() => Date)
+  @ValidateIf((obj) => obj.scheduledAt !== null && obj.scheduledAt !== undefined)
+  @IsFutureDate()
   scheduledAt?: Date;
 
-  @IsDateString()
   @IsOptional()
+  @Type(() => Date)
   publishedAt?: Date;
 }

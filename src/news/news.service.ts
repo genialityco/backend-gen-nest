@@ -27,10 +27,11 @@ export class NewsService {
 
   // Actualizar una noticia por ID (soporta documentos adjuntos)
   async update(id: string, updateNewsDto: UpdateNewsDto): Promise<News | null> {
-    // Si cambian la fecha programada y ya fue publicada, limpiar publishedAt
-    // para que el cron pueda reprocesarla con la nueva fecha
+    // Si cambian la fecha programada, resetear estados para reprocesar
     if (updateNewsDto.scheduledAt) {
       updateNewsDto.publishedAt = null;
+      // Resetear isPublic a false para que el CRON pueda publicarla cuando llegue la hora
+      updateNewsDto.isPublic = false;
     }
     // updateNewsDto.documents debe ser un array de objetos { id, name, type, url } si se provee
     return this.newsModel
@@ -83,36 +84,102 @@ export class NewsService {
     return this.newsModel.findByIdAndDelete(id).exec();
   }
 
-  async processScheduledNews(): Promise<void> {
+  async processScheduledNews(): Promise<{ message: string; processed: number }> {
     try {
       const now = new Date();
       console.log('⏰ Procesando noticias programadas a las:', now);
       
-      // Buscar noticias que deben ser publicadas (nunca han sido publicadas automáticamente)
+      // Buscar todas las noticias programadas (con o sin fecha)
+      const allScheduled = await this.newsModel.find({
+        scheduledAt: { $exists: true, $ne: null },
+      }).exec();
+
+      console.log(`📋 Total de noticias programadas en BD: ${allScheduled.length}`);
+      
+      // Log detallado de cada noticia
+      allScheduled.forEach(news => {
+        const scheduledDate = new Date(news.scheduledAt);
+        const isReady = scheduledDate <= now && !news.isPublic && !news.publishedAt;
+        console.log(
+          `   - "${news.title}": ` +
+          `scheduledAt=${scheduledDate.toISOString()}, ` +
+          `isReady=${isReady}, ` +
+          `isPublic=${news.isPublic}, ` +
+          `publishedAt=${news.publishedAt}, ` +
+          `diff=${Math.floor((scheduledDate.getTime() - now.getTime()) / 1000)}s`
+        );
+      });
+
+      // Buscar noticias que deben ser publicadas
+      // Criterios: scheduledAt <= ahora, isPublic=false, publishedAt=null
+      const newsToPublish = await this.newsModel.find({
+        scheduledAt: { $exists: true, $ne: null, $lte: now },
+        isPublic: false,
+        publishedAt: null,
+      }).exec();
+
+      console.log(`🔍 Noticias encontradas para publicar: ${newsToPublish.length}`);
+
+      if (newsToPublish.length === 0) {
+        return { message: 'No hay noticias programadas para publicar', processed: 0 };
+      }
+
+      // Actualizar todas las noticias
       const result = await this.newsModel.updateMany(
         { 
-          scheduledAt: { $exists: true, $lte: now }, 
+          scheduledAt: { $exists: true, $ne: null, $lte: now }, 
           isPublic: false,
-          publishedAt: null  // Solo si aún no ha sido publicada automáticamente
+          publishedAt: null
         },
         { 
           $set: { 
             isPublic: true,
-            publishedAt: now  // Registrar cuándo se publicó automáticamente
+            publishedAt: now,
           } 
         }
       );
       
       if (result.modifiedCount > 0) {
         console.log(`✅ ${result.modifiedCount} noticia(s) publicada(s) automáticamente`);
+        // Log detallado de las noticias publicadas
+        newsToPublish.forEach(news => {
+          console.log(`   📰 "${news.title}" (ID: ${news._id}) - Publicada desde: ${news.scheduledAt}`);
+        });
       }
+      
+      return { 
+        message: `${result.modifiedCount} noticia(s) actualizada(s)`, 
+        processed: result.modifiedCount 
+      };
     } catch (error) {
-      console.error('❌ Error al procesar notificaciones programadas:', error);
+      console.error('❌ Error al procesar noticias programadas:', error);
+      throw error;
     }
   }
 
   @Cron(CronExpression.EVERY_5_MINUTES)
   async handleCron() {
     await this.processScheduledNews();
+  }
+
+  // Método para verificar estado actual de noticias programadas (para debugging)
+  async getScheduledNewsStatus(): Promise<any> {
+    const now = new Date();
+    const scheduled = await this.newsModel.find({
+      scheduledAt: { $exists: true, $ne: null },
+    }).exec();
+
+    return {
+      currentTime: now,
+      totalScheduled: scheduled.length,
+      news: scheduled.map(n => ({
+        id: n._id,
+        title: n.title,
+        scheduledAt: n.scheduledAt,
+        isPublic: n.isPublic,
+        publishedAt: n.publishedAt,
+        isReady: new Date(n.scheduledAt) <= now && !n.isPublic && !n.publishedAt,
+      })),
+    };
   }
 }

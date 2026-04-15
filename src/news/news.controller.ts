@@ -109,4 +109,22 @@ export class NewsController {
       console.error('Error toggling public status:', error);
     }
   }
+
+  // Endpoint de prueba/debug: procesar noticias programadas manualmente
+  @Post('test/process-scheduled')
+  async testProcessScheduled(): Promise<ResponseDto<{ message: string; processed: number }>> {
+    const result = await this.newsService.processScheduledNews();
+    return new ResponseDto(
+      'success',
+      'Procesamiento manual de noticias programadas ejecutado',
+      result
+    );
+  }
+
+  // Endpoint de debug: Ver estado actual de noticias programadas
+  @Get('test/scheduled-status')
+  async getScheduledStatus(): Promise<ResponseDto<any>> {
+    const status = await this.newsService.getScheduledNewsStatus();
+    return new ResponseDto('success', 'Estado de noticias programadas', status);
+  }
 }
