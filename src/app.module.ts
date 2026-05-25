@@ -23,6 +23,8 @@ import { MulterModule } from '@nestjs/platform-express';
 import { UploadController } from './utils/UploadController';
 import { HighlightsModule } from './highlights/highlights.module';
 import { NotificationTemplateModule } from './notification-template/notification-template.module';
+import { PromoModalModule } from './promo-modal/promo-modal.module';
+
 @Module({
   imports: [
     ConfigModule.forRoot(),
@@ -47,7 +49,8 @@ import { NotificationTemplateModule } from './notification-template/notification
     NewsModule,
     NotificationsModule,
     HighlightsModule,
-    NotificationTemplateModule
+    NotificationTemplateModule,
+    PromoModalModule,
   ],
   controllers: [UploadController],
   providers: [initializeFirebaseAdmin],
