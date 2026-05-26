@@ -34,7 +34,7 @@ export class UploadController {
     const token = uuidv4();
 
     await blob.save(file.buffer, {
-      gzip: true,
+      gzip: false,
       resumable: false,
       metadata: {
         contentType: file.mimetype || 'image/jpeg',
