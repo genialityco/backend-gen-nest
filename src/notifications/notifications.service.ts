@@ -113,7 +113,7 @@ export class NotificationsService {
     body: string,
     data: any = {},
     iconUrl?: string,
-  ): Promise<void> {
+  ): Promise<number> {
     try {
       const usersExpoToken = await this.userModel
         .find({ expoPushToken: { $exists: true, $ne: null } })
@@ -157,6 +157,8 @@ export class NotificationsService {
       );
 
       console.log('All notifications sent successfully');
+
+      return expoPushTokens.length;
     } catch (error) {
       console.error('Error sending massive push notifications:', error);
       throw new InternalServerErrorException(
@@ -184,6 +186,7 @@ export class NotificationsService {
     await this.notificationTemplateModel.findByIdAndUpdate(templateId, {
       totalSent,
       isSent: true, // Marcar como enviado
+      sentAt: new Date(),
     });
 
     return { message: 'Notifications sent successfully', totalSent };
