@@ -4,4 +4,7 @@ export class UpdateNotificationDto {
   @IsBoolean()
   @IsOptional()
   isRead?: boolean;
+  @IsBoolean()
+  @IsOptional()
+  showNotification?: boolean;
 }

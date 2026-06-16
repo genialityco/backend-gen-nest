@@ -21,4 +21,8 @@ export class CreateNotificationDto {
   @IsString()
   @IsOptional()
   iconUrl?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  showNotification?: boolean;
 }

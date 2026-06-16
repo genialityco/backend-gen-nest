@@ -20,6 +20,24 @@ export class NotificationsController {
   //   return res;
   // }
 
+  // Contar las notificaciones que se están mostrando actualmente
+  @Get('visible/count')
+  async countVisible() {
+    const count = await this.notificationsService.countVisibleNotifications();
+    return { count };
+  }
+
+  // Vaciar: ocultar todas las notificaciones visibles
+  @Put('clear-visible')
+  async clearVisible() {
+    const modified =
+      await this.notificationsService.clearVisibleNotifications();
+    return {
+      message: 'Las notificaciones visibles han sido vaciadas.',
+      modified,
+    };
+  }
+
   // Obtener las notificaciones de un usuario
   @Get(':userId')
   async getUserNotifications(@Param('userId') userId: string) {

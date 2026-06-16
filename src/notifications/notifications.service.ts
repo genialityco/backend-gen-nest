@@ -36,7 +36,7 @@ export class NotificationsService {
   // Obtener todas las notificaciones de un usuario
   async getUserNotifications(userId: string): Promise<Notification[]> {
     return this.notificationModel
-      .find({ userId })
+      .find({ userId, showNotification: true })
       .sort({ createdAt: -1 })
       .exec();
   }
@@ -56,6 +56,20 @@ export class NotificationsService {
       { userId, isRead: false },
       { isRead: true },
     );
+  }
+
+  // Contar las notificaciones que se están mostrando (showNotification: true)
+  async countVisibleNotifications(): Promise<number> {
+    return this.notificationModel.countDocuments({ showNotification: true });
+  }
+
+  // Vaciar: ocultar todas las notificaciones visibles (showNotification: true -> false)
+  async clearVisibleNotifications(): Promise<number> {
+    const result = await this.notificationModel.updateMany(
+      { showNotification: true },
+      { showNotification: false },
+    );
+    return result.modifiedCount;
   }
 
   // Envío individual de notificaciones push

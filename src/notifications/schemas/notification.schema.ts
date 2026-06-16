@@ -8,6 +8,7 @@ export const NotificationSchema = new Schema(
     data: { type: Object, default: {} },
     isRead: { type: Boolean, default: false },
     iconUrl: { type: String, default: '' },
+    showNotification: { type: Boolean, default: true },
   },
   { timestamps: true },
 );

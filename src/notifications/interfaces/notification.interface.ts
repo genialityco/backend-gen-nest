@@ -5,4 +5,5 @@ export interface Notification {
   data?: Record<string, any>;
   isRead?: boolean;
   iconUrl?: string;
+  showNotification?: boolean;
 }
