@@ -132,6 +132,158 @@ export class AttendeeService {
     }
   
 
+  // Estadísticas de certificados agrupadas por evento
+  async getCertificateStatsByEvent(organizationId?: string): Promise<
+    Array<{
+      eventId: Types.ObjectId;
+      eventName: string;
+      startDate: Date;
+      attendeesCount: number;
+      certifiedHoursCount: number;
+      downloadersCount: number;
+      totalDownloads: number;
+    }>
+  > {
+    const pipeline: any[] = [
+      {
+        $group: {
+          _id: '$eventId',
+          // Usuarios que asistieron al evento = total de registros con ese eventId
+          attendeesCount: { $sum: 1 },
+          // Usuarios con horas certificadas = certificationHours > 0
+          // (se guarda como string, ej. '15' -> se convierte a número)
+          certifiedHoursCount: {
+            $sum: {
+              $cond: [
+                {
+                  $gt: [
+                    {
+                      $convert: {
+                        input: '$certificationHours',
+                        to: 'double',
+                        onError: 0,
+                        onNull: 0,
+                      },
+                    },
+                    0,
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          // Asistentes con attended=true (solo para filtrar eventos con certificados)
+          attendedCount: {
+            $sum: { $cond: [{ $eq: ['$attended', true] }, 1, 0] },
+          },
+          // Personas que descargaron al menos una vez
+          downloadersCount: {
+            $sum: {
+              $cond: [{ $gt: [{ $ifNull: ['$certificateDownloads', 0] }, 0] }, 1, 0],
+            },
+          },
+          // Descargas totales
+          totalDownloads: {
+            $sum: { $ifNull: ['$certificateDownloads', 0] },
+          },
+        },
+      },
+      // Solo eventos con certificados (asistentes con derecho o alguna descarga)
+      {
+        $match: {
+          $or: [{ attendedCount: { $gt: 0 } }, { totalDownloads: { $gt: 0 } }],
+        },
+      },
+      {
+        $lookup: {
+          from: 'events',
+          localField: '_id',
+          foreignField: '_id',
+          as: 'event',
+        },
+      },
+      { $unwind: { path: '$event', preserveNullAndEmptyArrays: true } },
+    ];
+
+    if (organizationId) {
+      pipeline.push({
+        $match: { 'event.organizationId': new Types.ObjectId(organizationId) },
+      });
+    }
+
+    pipeline.push(
+      {
+        $project: {
+          _id: 0,
+          eventId: '$_id',
+          eventName: '$event.name',
+          startDate: '$event.startDate',
+          attendeesCount: 1,
+          certifiedHoursCount: 1,
+          downloadersCount: 1,
+          totalDownloads: 1,
+        },
+      },
+      { $sort: { totalDownloads: -1 } },
+    );
+
+    return this.attendeeModel.aggregate(pipeline).exec();
+  }
+
+  // Detalle de usuarios de un evento (nombre, correo, horas, descargas)
+  async getEventAttendees(eventId: string): Promise<
+    Array<{
+      fullName: string;
+      email: string;
+      idNumber: string;
+      certificationHours: string;
+      certificateDownloads: number;
+    }>
+  > {
+    return this.attendeeModel
+      .aggregate([
+        { $match: { eventId: new Types.ObjectId(eventId) } },
+        {
+          $lookup: {
+            from: 'members',
+            localField: 'memberId',
+            foreignField: '_id',
+            as: 'memberDoc',
+          },
+        },
+        { $unwind: { path: '$memberDoc', preserveNullAndEmptyArrays: true } },
+        {
+          $project: {
+            _id: 0,
+            fullName: {
+              $ifNull: [
+                '$member.properties.fullName',
+                '$memberDoc.properties.fullName',
+              ],
+            },
+            email: {
+              $ifNull: [
+                '$member.properties.email',
+                '$memberDoc.properties.email',
+              ],
+            },
+            idNumber: {
+              $ifNull: [
+                '$member.properties.idNumber',
+                '$memberDoc.properties.idNumber',
+              ],
+            },
+            certificationHours: { $ifNull: ['$certificationHours', '0'] },
+            certificateDownloads: { $ifNull: ['$certificateDownloads', 0] },
+          },
+        },
+        // Primero los que más descargas tienen; luego alfabético
+        { $sort: { certificateDownloads: -1, fullName: 1 } },
+      ])
+      .exec();
+  }
+
   // Incrementar descargas del certificado por usuario
   // attendee.service.ts
 

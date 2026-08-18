@@ -41,6 +41,29 @@ export class AttendeeController {
       : new ResponseDto('error', 'No se encontraron asistentes');
   }
 
+  @Get('certificate-stats')
+  async getCertificateStats(
+    @Query('organizationId') organizationId?: string,
+  ): Promise<ResponseDto<{ items: any[]; totalItems: number }>> {
+    const items =
+      await this.attendeeService.getCertificateStatsByEvent(organizationId);
+    return new ResponseDto('success', 'Estadísticas de certificados', {
+      items,
+      totalItems: items.length,
+    });
+  }
+
+  @Get('certificate-stats/:eventId/attendees')
+  async getEventAttendees(
+    @Param('eventId') eventId: string,
+  ): Promise<ResponseDto<{ items: any[]; totalItems: number }>> {
+    const items = await this.attendeeService.getEventAttendees(eventId);
+    return new ResponseDto('success', 'Usuarios del evento', {
+      items,
+      totalItems: items.length,
+    });
+  }
+
   @Get()
   async findAll(@Query() paginationDto: PaginationDto): Promise<
     ResponseDto<{
