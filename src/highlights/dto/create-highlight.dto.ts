@@ -1,5 +1,6 @@
-import { IsMongoId, IsNotEmpty, IsString } from 'class-validator';
+import { IsArray, IsMongoId, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 import { Types } from 'mongoose';
+import { ProviderUrl } from '../interfaces/highlight.interface';
 
 export class CreateHighlightDto {
   @IsString()
@@ -29,4 +30,8 @@ export class CreateHighlightDto {
   @IsString()
   @IsNotEmpty()
   readonly transcription: string;
+
+  @IsOptional()
+  @IsArray()
+  readonly providerUrls?: ProviderUrl[];
 }

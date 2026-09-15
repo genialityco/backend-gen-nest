@@ -9,7 +9,19 @@ export const HighlightSchema = new Schema(
     description: { type: String, required: true },
     imageUrl: { type: String, required: true },
     vimeoUrl: { type: String, required: true },
-    transcription: { type: String, required: true}
+    transcription: { type: String, required: true},
+    providerUrls: {
+      type: [
+        {
+          provider: { type: String, required: true },
+          url: { type: String, required: true },
+          meta: { type: Schema.Types.Mixed, required: false },
+          _id: false,
+        },
+      ],
+      required: false,
+      default: undefined,
+    },
   },
   { timestamps: true },
 );
