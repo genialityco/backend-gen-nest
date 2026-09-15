@@ -8,10 +8,13 @@ import { UpdateHighlightDto } from './dto/update-highlight.dto';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { findWithFilters } from 'src/common/common.service';
 
-// Orden de preferencia al resolver que video entregar: Bunny primero (CDN
-// propio) y Vimeo como respaldo. Cualquier otro proveedor que se agregue a
-// providerUrls en el futuro se prueba al final, en el orden en que aparezca.
-const PROVIDER_PRIORITY = ['bunny', 'vimeo'];
+// Orden de preferencia al resolver que video entregar: Vimeo primero (el
+// frontend ya sabe construir el salto a un punto de la transcripcion
+// -#t=XmYs- solo para URLs de Vimeo) y Bunny como red de seguridad
+// unicamente cuando el link de Vimeo dejo de responder. Cualquier otro
+// proveedor que se agregue a providerUrls en el futuro se prueba al final,
+// en el orden en que aparezca.
+const PROVIDER_PRIORITY = ['vimeo', 'bunny'];
 const VIDEO_CHECK_TIMEOUT_MS = 4000;
 
 @Injectable()
@@ -142,10 +145,13 @@ export class HighlightsService {
   }
 
   // Obtener un highlight por ID. Resuelve cual video entregar probando
-  // providerUrls en orden de preferencia (Bunny primero, Vimeo de respaldo)
-  // y devolviendo el primero que responde; si ninguno responde, videoUrl
-  // queda en null (el frontend puede seguir usando vimeoUrl/providerUrls
-  // crudos si lo necesita).
+  // providerUrls en orden de preferencia (Vimeo primero, Bunny como red de
+  // seguridad si Vimeo no responde) y sobrescribe `vimeoUrl` con la URL que
+  // efectivamente respondio: el frontend actual (WebView en HighlightDetail)
+  // lee `vimeoUrl` a secas y no conoce providerUrls/videoUrl, asi que el fix
+  // tiene que llegar por ese mismo campo para no requerir cambios en el app.
+  // Tambien se exponen videoUrl/videoProvider por separado para cuando el
+  // frontend se actualice a leerlos explicitamente.
   async findOne(id: string): Promise<Highlight | null> {
     const highlight = await this.highlightModel
       .findById(id)
@@ -157,7 +163,10 @@ export class HighlightsService {
       highlight.vimeoUrl,
     );
 
-    const result = highlight.toObject();
+    const result: any = highlight.toObject();
+    // Si ninguna entrada respondio, se deja el vimeoUrl original tal cual
+    // (mejor un link posiblemente roto que un uri vacio en el WebView).
+    result.vimeoUrl = url || result.vimeoUrl;
     result.videoUrl = url;
     result.videoProvider = provider;
     return result as unknown as Highlight;
