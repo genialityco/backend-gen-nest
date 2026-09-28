@@ -1,6 +1,13 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
+import * as admin from 'firebase-admin';
+import { Member } from 'src/member/interfaces/member.interface';
 import { Notification } from './interfaces/notification.interface';
 import { CreateNotificationDto } from './dto/create-notification.dto';
 import axios from 'axios';
@@ -23,6 +30,7 @@ export class NotificationsService {
     @InjectModel('User') private userModel: Model<User>,
     @InjectModel('NotificationTemplate')
     private notificationTemplateModel: Model<NotificationTemplate>,
+    @InjectModel('Member') private memberModel: Model<Member>,
   ) {}
 
   // Crear una nueva notificación en la base de datos
@@ -204,6 +212,179 @@ export class NotificationsService {
     });
 
     return { message: 'Notifications sent successfully', totalSent };
+  }
+
+  // Cruza una lista de correos con los usuarios que tienen la app (push token).
+  // Busca por el correo de la cuenta en Firebase y, de respaldo, por el correo del member.
+  async resolveListRecipients(templateId: string, rawEmails: string[] = []) {
+    const template = await this.notificationTemplateModel.findById(templateId);
+    if (!template) {
+      throw new NotFoundException('Template not found');
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const unique = [
+      ...new Set(
+        rawEmails.map((e) => String(e || '').trim().toLowerCase()).filter(Boolean),
+      ),
+    ];
+    const invalid = unique.filter((e) => !emailRegex.test(e));
+    const emails = unique.filter((e) => emailRegex.test(e));
+
+    const userByEmail = new Map<string, User>();
+
+    // 1. Cuenta de Firebase -> user por firebaseUid
+    const uidByEmail = new Map<string, string>();
+    for (const batch of this.chunkArray(emails, 100)) {
+      const res = await admin
+        .auth()
+        .getUsers(batch.map((email: string) => ({ email })));
+      res.users.forEach((u) => {
+        if (u.email) uidByEmail.set(u.email.toLowerCase(), u.uid);
+      });
+    }
+    const usersByUid = await this.userModel
+      .find({ firebaseUid: { $in: [...uidByEmail.values()] } })
+      .exec();
+    const userByUid = new Map(usersByUid.map((u) => [u.firebaseUid, u]));
+    uidByEmail.forEach((uid, email) => {
+      const u = userByUid.get(uid);
+      if (u) userByEmail.set(email, u);
+    });
+
+    // 2. Respaldo: member de la organización con ese correo -> userId
+    const pending = emails.filter((e) => !userByEmail.get(e)?.expoPushToken);
+    if (pending.length) {
+      const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const members = await this.memberModel
+        .find({
+          organizationId: template.organizationId,
+          'properties.email': {
+            $in: pending.map((e) => new RegExp(`^\\s*${escape(e)}\\s*$`, 'i')),
+          },
+        })
+        .lean()
+        .exec();
+      const userIds = members
+        .map((m) => String(m.userId || ''))
+        .filter((id) => Types.ObjectId.isValid(id));
+      const users = await this.userModel
+        .find({ _id: { $in: userIds }, expoPushToken: { $nin: [null, ''] } })
+        .exec();
+      const userById = new Map(users.map((u) => [String(u._id), u]));
+      members.forEach((m) => {
+        const email = String(m.properties?.email || '').trim().toLowerCase();
+        const u = userById.get(String(m.userId));
+        if (u && !userByEmail.get(email)?.expoPushToken) {
+          userByEmail.set(email, u);
+        }
+      });
+    }
+
+    const recipients: { email: string; userId: string; token: string }[] = [];
+    const withoutApp: string[] = [];
+    const sharedToken: string[] = [];
+    const seenTokens = new Set<string>();
+    emails.forEach((email) => {
+      const u = userByEmail.get(email);
+      if (!u?.expoPushToken) {
+        withoutApp.push(email);
+      } else if (seenTokens.has(u.expoPushToken)) {
+        sharedToken.push(email);
+      } else {
+        seenTokens.add(u.expoPushToken);
+        recipients.push({ email, userId: String(u._id), token: u.expoPushToken });
+      }
+    });
+
+    return { template, recipients, withoutApp, invalid, sharedToken };
+  }
+
+  // Vista previa del envío por lista: no envía nada
+  async previewList(templateId: string, emails: string[]) {
+    const { recipients, withoutApp, invalid, sharedToken } =
+      await this.resolveListRecipients(templateId, emails);
+    return {
+      totalEmails: recipients.length + withoutApp.length + invalid.length + sharedToken.length,
+      withApp: recipients.map((r) => r.email),
+      withoutApp,
+      invalid,
+      sharedToken,
+    };
+  }
+
+  // Envía el template solo a los correos de la lista que tienen la app
+  async sendTemplateToList(templateId: string, emails: string[]) {
+    const { template, recipients, withoutApp, invalid, sharedToken } =
+      await this.resolveListRecipients(templateId, emails);
+    if (recipients.length === 0) {
+      throw new BadRequestException(
+        'Ningún correo de la lista tiene la aplicación instalada.',
+      );
+    }
+
+    const { title, body, data } = template;
+    await this.notificationModel.insertMany(
+      recipients.map((r) => ({ userId: r.userId, title, body, data, isRead: false })),
+    );
+
+    const failed: { email: string; message: string }[] = [];
+    let sent = 0;
+    for (const batch of this.chunkArray(recipients, this.batchSize)) {
+      const tickets = await this.postExpoBatch(
+        batch.map((r: { token: string }) => r.token),
+        title,
+        body,
+        data,
+      );
+      batch.forEach((r: { email: string }, i: number) => {
+        const t = tickets[i];
+        if (t?.status === 'ok') sent++;
+        else failed.push({ email: r.email, message: t?.message || 'Sin respuesta de Expo' });
+      });
+    }
+
+    // Se marca como enviado también para que el cron no lo reenvíe a todos
+    await this.notificationTemplateModel.findByIdAndUpdate(templateId, {
+      $inc: { totalSent: sent },
+      isSent: true,
+      sentAt: new Date(),
+    });
+
+    return { sent, failed, withoutApp, invalid, sharedToken };
+  }
+
+  // Envía un lote a Expo y devuelve los tickets en el mismo orden de los tokens
+  private async postExpoBatch(
+    expoPushTokens: string[],
+    title: string,
+    body: string,
+    data: any = {},
+  ): Promise<{ status: string; message?: string }[]> {
+    const messages = expoPushTokens.map((token) => ({
+      to: token,
+      sound: 'default',
+      title,
+      body,
+      data,
+      icon: this.defaultIconUrl,
+    }));
+    try {
+      const response = await axios.post(this.expoPushUrl, messages, {
+        headers: {
+          Accept: 'application/json',
+          'Accept-Encoding': 'gzip, deflate',
+          'Content-Type': 'application/json',
+        },
+      });
+      return response.data?.data || [];
+    } catch (error) {
+      console.error('Error al enviar el lote de notificaciones:', error);
+      return expoPushTokens.map(() => ({
+        status: 'error',
+        message: error?.message || 'Error de red con Expo',
+      }));
+    }
   }
 
   // Envía un lote de notificaciones push

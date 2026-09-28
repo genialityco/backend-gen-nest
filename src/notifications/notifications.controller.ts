@@ -97,4 +97,25 @@ export class NotificationsController {
     return this.notificationsService.sendFromTemplate(templateId);
   }
 
+  // Vista previa del envío por lista de correos (no envía)
+  @Post('preview-list/:templateId')
+  async previewList(
+    @Param('templateId') templateId: string,
+    @Body() payload: { emails: string[] },
+  ) {
+    return this.notificationsService.previewList(templateId, payload?.emails || []);
+  }
+
+  // Envío del template solo a una lista de correos
+  @Post('send-to-list/:templateId')
+  async sendToList(
+    @Param('templateId') templateId: string,
+    @Body() payload: { emails: string[] },
+  ) {
+    return this.notificationsService.sendTemplateToList(
+      templateId,
+      payload?.emails || [],
+    );
+  }
+
 }

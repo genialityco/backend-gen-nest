@@ -5,6 +5,7 @@ import { NotificationsController } from './notifications.controller';
 import { NotificationSchema } from './schemas/notification.schema';
 import { UserSchema } from 'src/user/schemas/user.schema';
 import { NotificationTemplateSchema } from 'src/notification-template/schemas/notification-template.schema';
+import { MemberSchema } from 'src/member/schemas/member.schema';
 import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
@@ -14,6 +15,7 @@ import { ScheduleModule } from '@nestjs/schedule';
       { name: 'Notification', schema: NotificationSchema },
       { name: 'User', schema: UserSchema },
       { name: 'NotificationTemplate', schema: NotificationTemplateSchema },
+      { name: 'Member', schema: MemberSchema },
     ]),
   ],
   controllers: [NotificationsController],
