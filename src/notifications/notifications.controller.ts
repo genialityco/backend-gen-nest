@@ -1,4 +1,12 @@
-import { Controller, Post, Get, Put, Body, Param } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Put,
+  Body,
+  Param,
+  BadRequestException,
+} from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { NotificationsService } from './notifications.service';
 import { CreateNotificationDto } from './dto/create-notification.dto';
@@ -106,13 +114,27 @@ export class NotificationsController {
     return this.notificationsService.previewList(templateId, payload?.emails || []);
   }
 
-  // Envío del template solo a una lista de correos
+  // Envío inmediato del template solo a una lista de correos
   @Post('send-to-list/:templateId')
   async sendToList(
     @Param('templateId') templateId: string,
     @Body() payload: { emails: string[] },
   ) {
-    return this.notificationsService.sendTemplateToList(
+    const emails = payload?.emails || [];
+    if (!emails.length) {
+      throw new BadRequestException('La lista de correos está vacía.');
+    }
+    return this.notificationsService.sendTemplateToList(templateId, emails);
+  }
+
+  // Guarda la lista de destinatarios del template para su envío programado.
+  // Con una lista vacía el template vuelve a enviarse a todos.
+  @Put('recipients/:templateId')
+  async saveRecipients(
+    @Param('templateId') templateId: string,
+    @Body() payload: { emails: string[] },
+  ) {
+    return this.notificationsService.saveRecipientList(
       templateId,
       payload?.emails || [],
     );

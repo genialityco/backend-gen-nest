@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
@@ -313,20 +312,37 @@ export class NotificationsService {
     };
   }
 
-  // Envía el template solo a los correos de la lista que tienen la app
-  async sendTemplateToList(templateId: string, emails: string[]) {
+  // Guarda la lista de destinatarios en el template; el cron la usa a la hora programada.
+  // Una lista vacía vuelve el template a "enviar a todos".
+  async saveRecipientList(templateId: string, emails: string[]) {
+    const preview = await this.previewList(templateId, emails);
+    const recipientEmails = [
+      ...preview.withApp,
+      ...preview.sharedToken,
+      ...preview.withoutApp,
+    ];
+    await this.notificationTemplateModel.findByIdAndUpdate(templateId, {
+      recipientEmails,
+    });
+    return { ...preview, saved: recipientEmails.length };
+  }
+
+  // Envía el template solo a los correos que tienen la app.
+  // Sin `emails` usa la lista guardada en el template (envío programado).
+  async sendTemplateToList(templateId: string, emails?: string[]) {
+    const current = await this.notificationTemplateModel.findById(templateId);
     const { template, recipients, withoutApp, invalid, sharedToken } =
-      await this.resolveListRecipients(templateId, emails);
-    if (recipients.length === 0) {
-      throw new BadRequestException(
-        'Ningún correo de la lista tiene la aplicación instalada.',
+      await this.resolveListRecipients(
+        templateId,
+        emails ?? current?.recipientEmails ?? [],
       );
-    }
 
     const { title, body, data } = template;
-    await this.notificationModel.insertMany(
-      recipients.map((r) => ({ userId: r.userId, title, body, data, isRead: false })),
-    );
+    if (recipients.length) {
+      await this.notificationModel.insertMany(
+        recipients.map((r) => ({ userId: r.userId, title, body, data, isRead: false })),
+      );
+    }
 
     const failed: { email: string; message: string }[] = [];
     let sent = 0;
@@ -451,7 +467,20 @@ export class NotificationsService {
       if (templates.length > 0) {
         for (const template of templates) {
           //console.log(`Enviando notificación programada: ${template.title}`);
-          await this.sendFromTemplate(template._id.toString());
+          const id = template._id.toString();
+          try {
+            // Con lista guardada se envía solo a esa lista, nunca a todos
+            if (template.recipientEmails?.length) {
+              const res = await this.sendTemplateToList(id);
+              console.log(
+                `Notificación programada ${id} enviada a lista: ${res.sent} ok, ${res.failed.length} con error`,
+              );
+            } else {
+              await this.sendFromTemplate(id);
+            }
+          } catch (error) {
+            console.error(`Error al enviar la notificación programada ${id}:`, error);
+          }
         }
         //  for (const template of templates) {
         //   console.log(`Enviando notificación programada: ${template.title}`);

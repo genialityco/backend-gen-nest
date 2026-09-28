@@ -14,6 +14,8 @@ export const NotificationTemplateSchema = new Schema(
     totalSent: { type: Number, default: 0 },
     sentAt: { type: Date, default: null },
     scheduledAt: { type: Date, default: null },
+    // Si tiene correos, el envío programado va solo a esta lista
+    recipientEmails: { type: [String], default: [] },
   },
   { timestamps: true },
 );

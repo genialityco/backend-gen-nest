@@ -11,4 +11,5 @@ export interface NotificationTemplate extends Document {
   updatedAt: Date;
   sentAt: Date | null;
   scheduledAt?: Date | null;
+  recipientEmails?: string[];
 }

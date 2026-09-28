@@ -1,4 +1,5 @@
 import {
+  IsArray,
   IsBoolean,
   IsDateString,
   IsMongoId,
@@ -41,4 +42,9 @@ export class CreateNotificationTemplateDto {
   @IsDateString()
   @IsOptional()
   readonly scheduledAt?: Date;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  readonly recipientEmails?: string[];
 }
