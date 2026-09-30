@@ -6,6 +6,7 @@ export interface News extends Document {
   organizationId: Types.ObjectId;
   eventId: Types.ObjectId;
   readonly featuredImage?: string;
+  readonly redirectUrl?: string | null;
   readonly createdAt: Date;
   readonly updatedAt: Date;
   isPublic?: boolean | true;

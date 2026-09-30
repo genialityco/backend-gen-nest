@@ -15,6 +15,9 @@ export const NewsSchema = new Schema(
       required: false,
     },
     featuredImage: { type: String, required: false },
+    // Enlace (achoapp://... o https://...) que abre la app al tocar la noticia en el listado.
+    // Vacío = abre el detalle de la noticia.
+    redirectUrl: { type: String, default: null },
     documents: [
       {
         id: { type: String, required: true },

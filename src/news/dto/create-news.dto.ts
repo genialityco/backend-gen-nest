@@ -26,6 +26,10 @@ export class CreateNewsDto {
   @IsOptional()
   featuredImage?: string;
 
+  @IsString()
+  @IsOptional()
+  redirectUrl?: string | null;
+
   @IsOptional()
   isPublic?: boolean;
 
