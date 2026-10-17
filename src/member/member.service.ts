@@ -1,4 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import * as admin from 'firebase-admin';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Member } from './interfaces/member.interface';
@@ -7,6 +12,9 @@ import { UpdateMemberDto } from './dto/update-member.dto';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { findWithFilters } from 'src/common/common.service';
 import { User } from 'src/user/interfaces/user.interface';
+
+// Documentos de relleno que no sirven como contraseña (ver dedupe de members)
+const PLACEHOLDER_ID_NUMBERS = ['ACHOAPP', 'APPACHO', 'N/A', '#N/A'];
 
 @Injectable()
 export class MemberService {
@@ -66,6 +74,62 @@ export class MemberService {
   // Obtener un miembro por ID
   async findOne(id: string): Promise<Member | null> {
     return this.memberModel.findById(id).exec();
+  }
+
+  // Restablecer la contraseña de Firebase al número de documento del miembro
+  async resetPasswordToIdNumber(
+    id: string,
+  ): Promise<{ email: string; idNumber: string }> {
+    const member = await this.memberModel.findById(id).exec();
+    if (!member) {
+      throw new NotFoundException('No se encontró el miembro');
+    }
+
+    const idNumber = String(member.properties?.idNumber ?? '').trim();
+    if (
+      idNumber.length < 6 ||
+      PLACEHOLDER_ID_NUMBERS.includes(idNumber.toUpperCase())
+    ) {
+      throw new BadRequestException(
+        `El miembro no tiene un número de documento válido para usar como contraseña ("${idNumber}"). Corrige el documento primero (mínimo 6 caracteres).`,
+      );
+    }
+
+    // La cuenta se busca por el user vinculado y, de respaldo, por el correo
+    let firebaseUser: admin.auth.UserRecord | null = null;
+    const user = member.userId
+      ? await this.userModel.findById(member.userId).exec().catch(() => null)
+      : null;
+    if (user?.firebaseUid) {
+      firebaseUser = await admin
+        .auth()
+        .getUser(user.firebaseUid)
+        .catch(() => null);
+    }
+    const email = String(member.properties?.email ?? '').trim();
+    if (!firebaseUser && email) {
+      firebaseUser = await admin
+        .auth()
+        .getUserByEmail(email)
+        .catch(() => null);
+    }
+    if (!firebaseUser) {
+      throw new NotFoundException(
+        'El miembro no tiene una cuenta de acceso en Firebase',
+      );
+    }
+
+    await admin.auth().updateUser(firebaseUser.uid, { password: idNumber });
+    // Cierra las sesiones abiertas con la contraseña anterior
+    await admin.auth().revokeRefreshTokens(firebaseUser.uid);
+
+    if (member.properties?.password !== undefined) {
+      await this.memberModel
+        .updateOne({ _id: member._id }, { 'properties.password': idNumber })
+        .exec();
+    }
+
+    return { email: firebaseUser.email, idNumber };
   }
 
   // Eliminar un miembro por ID

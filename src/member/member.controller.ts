@@ -109,6 +109,18 @@ export class MemberController {
       : new ResponseDto('error', 'No se pudo actualizar el miembro');
   }
 
+  @Post(':id/reset-password')
+  async resetPassword(
+    @Param('id') id: string,
+  ): Promise<ResponseDto<{ email: string; idNumber: string }>> {
+    const result = await this.memberService.resetPasswordToIdNumber(id);
+    return new ResponseDto(
+      'success',
+      'Contraseña restablecida al número de documento',
+      result,
+    );
+  }
+
   @Delete(':id')
   async remove(@Param('id') id: string): Promise<ResponseDto<Member>> {
     const result = await this.memberService.remove(id);
