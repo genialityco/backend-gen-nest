@@ -11,7 +11,16 @@ export class CertificateService {
     @InjectModel('Certificate') private certificateModel: Model<Certificate>,
   ) {}
 
+  // Un evento tiene un único certificado: si ya existe se actualiza en lugar
+  // de crear uno nuevo
   async create(certificateDto: CreateCertificateDto): Promise<Certificate> {
+    const existing = await this.certificateModel
+      .findOne({ eventId: new Types.ObjectId(certificateDto.eventId) })
+      .sort({ updatedAt: -1 })
+      .exec();
+    if (existing) {
+      return this.update(existing._id.toString(), certificateDto);
+    }
     const newCertificate = new this.certificateModel(certificateDto);
     return newCertificate.save();
   }
@@ -20,12 +29,12 @@ export class CertificateService {
     id: string,
     certificateDto: UpdateCertificateDto,
   ): Promise<Certificate | null> {
+    const $set: Record<string, any> = {};
+    if (certificateDto.elements) $set.elements = certificateDto.elements;
+    if (certificateDto.size) $set.size = certificateDto.size;
+    if (certificateDto.fields) $set.fields = certificateDto.fields;
     return this.certificateModel
-      .findByIdAndUpdate(
-        id,
-        { $set: { elements: certificateDto.elements } },
-        { new: true },
-      )
+      .findByIdAndUpdate(id, { $set }, { new: true })
       .exec();
   }
   

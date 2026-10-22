@@ -21,6 +21,8 @@ export const AttendeeSchema = new mongoose.Schema(
     certificationHours: { type: String, required: false },
     typeAttendee: { type: String, required: false },
     certificateDownloads: {type: Number, required: false},
+    // Atributos dinámicos definidos en el certificado del evento (ej. horas, rol)
+    properties: { type: Object, required: false },
   },
   { timestamps: true },
 );

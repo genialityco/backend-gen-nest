@@ -204,6 +204,7 @@ async addOrCreateAttendee(payload: {
       certificationHours: attendee.certificationHours,
       typeAttendee: attendee.typeAttendee,
       certificateDownloads: attendee.certificateDownloads ?? 0,
+      properties: attendee.properties,
     });
     console.log('Attendee creado');
   } else {
@@ -212,6 +213,9 @@ async addOrCreateAttendee(payload: {
     mongoAttendee.certificationHours = attendee.certificationHours ?? mongoAttendee.certificationHours;
     mongoAttendee.typeAttendee = attendee.typeAttendee ?? mongoAttendee.typeAttendee;
     mongoAttendee.certificateDownloads = attendee.certificateDownloads ?? mongoAttendee.certificateDownloads;
+    if (attendee.properties) {
+      mongoAttendee.properties = { ...(mongoAttendee.properties || {}), ...attendee.properties };
+    }
     await mongoAttendee.save();
     console.log('Attendee actualizado');
   }

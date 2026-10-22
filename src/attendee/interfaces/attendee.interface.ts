@@ -8,4 +8,5 @@ export interface Attendee extends Document {
   certificationHours?: string;
   typeAttendee?: string;
   certificateDownloads?: number;
+  properties?: Record<string, any>;
 }

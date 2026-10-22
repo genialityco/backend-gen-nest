@@ -15,6 +15,18 @@ export const CertificateSchema = new mongoose.Schema(
       ref: 'Event',
       required: true,
     },
+    // Campos dinámicos que se piden en la carga de asistentes de este certificado
+    // (además de los datos base del miembro). Ej: [{ key: 'certificationHours', label: 'Horas' }]
+    fields: {
+      type: [
+        {
+          _id: false,
+          key: { type: String, required: true },
+          label: { type: String, required: true },
+        },
+      ],
+      default: undefined,
+    },
   },
   { timestamps: true },
 );

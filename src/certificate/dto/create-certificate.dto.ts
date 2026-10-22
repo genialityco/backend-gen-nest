@@ -23,4 +23,8 @@ export class CreateCertificateDto {
   @IsMongoId()
   @IsNotEmpty()
   readonly eventId: string;
+
+  @IsArray()
+  @IsOptional()
+  readonly fields?: { key: string; label: string }[];
 }

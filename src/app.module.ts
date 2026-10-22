@@ -24,6 +24,7 @@ import { UploadController } from './utils/UploadController';
 import { HighlightsModule } from './highlights/highlights.module';
 import { NotificationTemplateModule } from './notification-template/notification-template.module';
 import { PromoModalModule } from './promo-modal/promo-modal.module';
+import { CertificateAdminModule } from './certificate-admin/certificate-admin.module';
 
 @Module({
   imports: [
@@ -51,6 +52,7 @@ import { PromoModalModule } from './promo-modal/promo-modal.module';
     HighlightsModule,
     NotificationTemplateModule,
     PromoModalModule,
+    CertificateAdminModule,
   ],
   controllers: [UploadController],
   providers: [initializeFirebaseAdmin],

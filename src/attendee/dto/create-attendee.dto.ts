@@ -1,4 +1,4 @@
-import { IsMongoId, IsOptional, IsNotEmpty } from 'class-validator';
+import { IsMongoId, IsOptional, IsNotEmpty, IsObject } from 'class-validator';
 
 export class CreateAttendeeDto {
   @IsMongoId()
@@ -24,4 +24,8 @@ export class CreateAttendeeDto {
 
   @IsOptional()
   readonly certificateDownloads: number;
+
+  @IsOptional()
+  @IsObject()
+  readonly properties?: Record<string, any>;
 }
