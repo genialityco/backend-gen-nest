@@ -58,4 +58,15 @@ export class CreateEventDto {
 
   @IsOptional()
   readonly externalRegistrationUrl?: string;
+
+  @IsObject()
+  @IsOptional()
+  readonly registrationButton?: RegistrationButtonConfig;
+}
+
+export interface RegistrationButtonConfig {
+  enabled?: boolean;
+  text?: string;
+  action?: 'register' | 'link';
+  url?: string;
 }

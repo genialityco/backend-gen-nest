@@ -48,6 +48,13 @@ export const EventSchema = new mongoose.Schema(
       type: String,
       required: false,
     },
+    // Botón de inscripción del detalle del evento en la app.
+    // { enabled, text, action: 'register' | 'link', url }
+    // Si no existe se mantiene el comportamiento clásico ("Inscribirme").
+    registrationButton: {
+      type: mongoose.Schema.Types.Mixed,
+      required: false,
+    },
   },
   { timestamps: true },
 );

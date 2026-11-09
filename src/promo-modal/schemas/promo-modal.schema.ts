@@ -7,6 +7,7 @@ export const PromoModalSchema = new Schema(
     imageUri: { type: String, default: '' },
     videoUri: { type: String, default: '' },
     ctaUrl: { type: String, default: '' },
+    ctaText: { type: String, default: '' },
     showButton: { type: Boolean, default: false },
     imageOnPressUrl: { type: String, default: '' },
   },

@@ -1,4 +1,5 @@
 import { Document, Types } from 'mongoose';
+import { RegistrationButtonConfig } from '../dto/create-event.dto';
 
 export interface EventInterface extends Document {
   readonly name: string;
@@ -21,4 +22,5 @@ export interface EventInterface extends Document {
   readonly price?: number;
   readonly isExternalRegistration: boolean;
   readonly externalRegistrationUrl: string;
+  readonly registrationButton?: RegistrationButtonConfig;
 }
