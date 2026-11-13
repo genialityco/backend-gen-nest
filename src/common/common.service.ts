@@ -193,6 +193,20 @@ export async function findWithFilters<T>(
         break;
 
       case 'contains':
+        // Busqueda en varios campos a la vez: "a|b|c" -> $or (un solo input en el CMS)
+        if (field.includes('|')) {
+          const regex = new RegExp(
+            stringValue.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
+            'i',
+          );
+          const orConditions = field
+            .split('|')
+            .map((f) => f.trim())
+            .filter(Boolean)
+            .map((f) => ({ [f]: { $regex: regex } }));
+          filterQuery.$and = [...(filterQuery.$and ?? []), { $or: orConditions }];
+          break;
+        }
         Object.assign(filterQuery, {
           [field]: { $regex: new RegExp(stringValue, 'i') },
         });
