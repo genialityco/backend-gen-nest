@@ -16,11 +16,15 @@ import { User } from './interfaces/user.interface';
 import { ResponseDto } from 'src/common/response.dto';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { addOrCreateAttendee } from './schemas/user.schema';
+import { AppActivityService } from 'src/app-activity/app-activity.service';
 
 
 @Controller('users')
 export class UserController {
-  constructor(private readonly userService: UserService) {}
+  constructor(
+    private readonly userService: UserService,
+    private readonly appActivityService: AppActivityService,
+  ) {}
 
   @Get('search')
   async findWithFilters(
@@ -28,6 +32,14 @@ export class UserController {
     @Query() paginationDto: PaginationDto,
   ): Promise<ResponseDto<any>> {
     const result = await this.userService.findWithFilters(query, paginationDto);
+
+    // La app ACHO llama a este endpoint con su firebaseUid cada vez que se abre:
+    // se aprovecha para registrar el acceso diario (sin esperar ni romper la respuesta).
+    const items = (result as any)?.items;
+    if (query.firebaseUid && items?.length === 1) {
+      void this.appActivityService.record(String(items[0]._id));
+    }
+
     return new ResponseDto('success', 'Usuarios encontrados', result);
   }
 

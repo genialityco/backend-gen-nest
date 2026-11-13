@@ -5,9 +5,10 @@ import { UserService } from './user.service';
 import { UserController } from './user.controller';
 import { MemberSchema } from 'src/member/schemas/member.schema';
 import { AttendeeSchema } from 'src/attendee/schemas/attendee.schema';
+import { AppActivityModule } from 'src/app-activity/app-activity.module';
 
 @Module({
-  imports: [MongooseModule.forFeature([
+  imports: [AppActivityModule, MongooseModule.forFeature([
     { name: 'User', schema: UserSchema },
       { name: 'Member', schema: MemberSchema },
       { name: 'Attendee', schema: AttendeeSchema },

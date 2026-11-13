@@ -25,6 +25,7 @@ import { HighlightsModule } from './highlights/highlights.module';
 import { NotificationTemplateModule } from './notification-template/notification-template.module';
 import { PromoModalModule } from './promo-modal/promo-modal.module';
 import { CertificateAdminModule } from './certificate-admin/certificate-admin.module';
+import { AppActivityModule } from './app-activity/app-activity.module';
 
 @Module({
   imports: [
@@ -53,6 +54,7 @@ import { CertificateAdminModule } from './certificate-admin/certificate-admin.mo
     NotificationTemplateModule,
     PromoModalModule,
     CertificateAdminModule,
+    AppActivityModule,
   ],
   controllers: [UploadController],
   providers: [initializeFirebaseAdmin],
