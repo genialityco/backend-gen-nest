@@ -10,9 +10,11 @@ import { Member } from 'src/member/interfaces/member.interface';
 import { User } from 'src/user/interfaces/user.interface';
 import { Attendee } from 'src/attendee/interfaces/attendee.interface';
 import { Certificate } from 'src/certificate/interfaces/certificate.interface';
+import { CertificateEmailService } from './certificate-email.service';
 import {
   ATTENDEE_ROOT_KEYS,
   MEMBER_BASE_KEYS,
+  PLACEHOLDER_ID_NUMBERS,
   accentInsensitivePattern,
   escapeRegex,
   isEmpty,
@@ -27,6 +29,12 @@ import {
   UpdateAttendeeDataDto,
   UpdateMemberPropertiesDto,
 } from './dto/certificate-admin.dto';
+
+// Sin documento o con uno de relleno (ACHOAPP, N/A...)
+const isMissingIdNumber = (value: unknown) => {
+  const id = normalizeIdNumber(value);
+  return !id || PLACEHOLDER_ID_NUMBERS.includes(id.toUpperCase());
+};
 
 // Comparación de texto sin mayúsculas ni tildes
 const LOOSE_COLLATION = { locale: 'es', strength: 1 };
@@ -55,6 +63,7 @@ export class CertificateAdminService {
     @InjectModel('Attendee') private attendeeModel: Model<Attendee>,
     @InjectModel('Certificate') private certificateModel: Model<Certificate>,
     @InjectModel('Event') private eventModel: Model<any>,
+    private readonly emailService: CertificateEmailService,
   ) {}
 
   // ---------------------------------------------------------------------------
@@ -221,6 +230,13 @@ export class CertificateAdminService {
         });
       }
     }
+
+    // Correo con el enlace de descarga a los recién inscritos (en segundo plano,
+    // solo si el certificado tiene diseño y el envío automático está activo)
+    this.emailService.queueAutoSend(
+      event._id,
+      results.filter((r) => r.status === 'created' && r.attendeeId).map((r) => r.attendeeId),
+    );
 
     return {
       results,
@@ -667,6 +683,32 @@ export class CertificateAdminService {
   // Consulta pública
   // ---------------------------------------------------------------------------
 
+  // Desde la landing del correo: el asistente sin documento lo completa antes de
+  // descargar. Solo se permite si el miembro no tiene un documento real.
+  async completeIdNumber(attendeeId: string, rawIdNumber: string) {
+    const attendee = await this.attendeeModel
+      .findById(this.toObjectId(attendeeId, 'attendeeId'))
+      .lean<any>()
+      .exec();
+    if (!attendee?.memberId) throw new NotFoundException('No se encontró el certificado');
+
+    const member = await this.memberModel.findById(attendee.memberId).lean<any>().exec();
+    if (!member) throw new NotFoundException('No se encontró el miembro');
+    if (!isMissingIdNumber(member.properties?.idNumber)) {
+      throw new BadRequestException('Tu número de identificación ya está registrado');
+    }
+
+    const idNumber = normalizeIdNumber(rawIdNumber);
+    if (!/^[A-Za-z0-9]{5,20}$/.test(idNumber) || isMissingIdNumber(idNumber)) {
+      throw new BadRequestException('Escribe un número de identificación válido (solo números o letras)');
+    }
+    const patch = { 'properties.idNumber': idNumber };
+    await this.assertNoDuplicateMember(member._id, patch);
+    await this.memberModel.updateOne({ _id: member._id }, { $set: patch }).exec();
+
+    return this.getRenderData(attendeeId);
+  }
+
   async publicSearch(organizationId: string, rawQuery: string) {
     const orgId = this.toObjectId(organizationId, 'organizationId');
     const q = String(rawQuery ?? '').trim();
@@ -835,6 +877,7 @@ export class CertificateAdminService {
     delete memberProps.password;
 
     return {
+      missingIdNumber: isMissingIdNumber(memberProps.idNumber),
       attendee: {
         _id: attendee._id,
         eventId: attendee.eventId,

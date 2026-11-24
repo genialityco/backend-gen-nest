@@ -39,6 +39,13 @@ FIREBASE_PRIVATE_KEY=
 FIREBASE_CLIENT_EMAIL=
 FIREBASE_DATABASE_URL=
 storageBucket=
+# Correo por AWS SES (src/email, copiado de GenCampus). Sin esto no se envían correos
+AWS_ACCESS_KEY_ID=
+AWS_SECRET_ACCESS_KEY=
+AWS_REGION=
+AWS_SES_EMAIL_FROM=
+AWS_SES_EMAIL_FROM_NAME=
+CERTIFICATES_APP_URL=
 ```
 
 ## Architecture

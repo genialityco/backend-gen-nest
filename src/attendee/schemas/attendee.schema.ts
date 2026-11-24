@@ -23,6 +23,9 @@ export const AttendeeSchema = new mongoose.Schema(
     certificateDownloads: {type: Number, required: false},
     // Atributos dinámicos definidos en el certificado del evento (ej. horas, rol)
     properties: { type: Object, required: false },
+    // Estado del correo con el enlace de descarga del certificado
+    // { status: 'sent' | 'failed', sentAt, failedAt, to, error, count }
+    certificateEmail: { type: Object, required: false },
   },
   { timestamps: true },
 );

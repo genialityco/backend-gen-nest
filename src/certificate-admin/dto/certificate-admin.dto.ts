@@ -3,9 +3,13 @@ import {
   ArrayMaxSize,
   IsArray,
   IsBoolean,
+  IsEmail,
+  IsIn,
   IsNumber,
   IsObject,
   IsOptional,
+  IsString,
+  MaxLength,
   ValidateNested,
 } from 'class-validator';
 
@@ -70,4 +74,29 @@ export class UpdateMemberPropertiesDto {
   @IsOptional()
   @IsArray()
   readonly unset?: string[];
+}
+
+// Configuración del correo del certificado. La estructura de los bloques se
+// valida y sanea en certificate-email.template.ts
+export class EmailSettingsBodyDto {
+  @IsOptional()
+  @IsObject()
+  readonly settings?: Record<string, any>;
+}
+
+export class TestEmailDto extends EmailSettingsBodyDto {
+  @IsEmail({}, { message: 'Correo de prueba inválido' })
+  readonly to: string;
+}
+
+export class SendEventEmailsDto {
+  @IsOptional()
+  @IsIn(['pending', 'all'])
+  readonly scope?: 'pending' | 'all';
+}
+
+export class CompleteIdNumberDto {
+  @IsString()
+  @MaxLength(30)
+  readonly idNumber: string;
 }

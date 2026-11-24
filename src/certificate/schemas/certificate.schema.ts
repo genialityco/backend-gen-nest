@@ -27,6 +27,9 @@ export const CertificateSchema = new mongoose.Schema(
       ],
       default: undefined,
     },
+    // Correo que avisa al asistente que su certificado está listo (bloques
+    // editables desde el admin). Ver certificate-admin/certificate-email.template.ts
+    emailSettings: { type: mongoose.Schema.Types.Mixed, required: false },
   },
   { timestamps: true },
 );

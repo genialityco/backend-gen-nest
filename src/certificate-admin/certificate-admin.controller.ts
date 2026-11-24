@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
@@ -10,15 +11,23 @@ import {
 } from '@nestjs/common';
 import { ResponseDto } from 'src/common/response.dto';
 import { CertificateAdminService } from './certificate-admin.service';
+import { CertificateEmailService } from './certificate-email.service';
 import {
   BulkAttendeesDto,
+  CompleteIdNumberDto,
+  EmailSettingsBodyDto,
+  SendEventEmailsDto,
+  TestEmailDto,
   UpdateAttendeeDataDto,
   UpdateMemberPropertiesDto,
 } from './dto/certificate-admin.dto';
 
 @Controller('certificate-admin')
 export class CertificateAdminController {
-  constructor(private readonly service: CertificateAdminService) {}
+  constructor(
+    private readonly service: CertificateAdminService,
+    private readonly emailService: CertificateEmailService,
+  ) {}
 
   // --- Administración -------------------------------------------------------
 
@@ -95,7 +104,70 @@ export class CertificateAdminController {
     return new ResponseDto('success', 'Certificado actualizado', result);
   }
 
+  // --- Correo del certificado ---------------------------------------------
+
+  @Get('events/:eventId/email')
+  async emailConfig(@Param('eventId') eventId: string): Promise<ResponseDto<any>> {
+    const result = await this.emailService.getConfig(eventId);
+    return new ResponseDto('success', 'Configuración del correo', result);
+  }
+
+  @Put('events/:eventId/email')
+  async saveEmailConfig(
+    @Param('eventId') eventId: string,
+    @Body(new ValidationPipe()) body: EmailSettingsBodyDto,
+  ): Promise<ResponseDto<any>> {
+    const result = await this.emailService.saveSettings(eventId, body.settings);
+    return new ResponseDto('success', 'Correo guardado', result);
+  }
+
+  @Post('events/:eventId/email/preview')
+  async previewEmail(
+    @Param('eventId') eventId: string,
+    @Body() body: EmailSettingsBodyDto,
+  ): Promise<ResponseDto<any>> {
+    const result = await this.emailService.preview(eventId, body?.settings);
+    return new ResponseDto('success', 'Vista previa', result);
+  }
+
+  @Post('events/:eventId/email/test')
+  async testEmail(
+    @Param('eventId') eventId: string,
+    @Body(new ValidationPipe()) body: TestEmailDto,
+  ): Promise<ResponseDto<any>> {
+    const result = await this.emailService.sendTest(eventId, body.to, body.settings);
+    return new ResponseDto('success', 'Correo de prueba enviado', result);
+  }
+
+  @Post('events/:eventId/email/send')
+  async sendEventEmails(
+    @Param('eventId') eventId: string,
+    @Body(new ValidationPipe()) body: SendEventEmailsDto,
+  ): Promise<ResponseDto<any>> {
+    const result = await this.emailService.sendToEvent(eventId, body.scope ?? 'pending');
+    return new ResponseDto('success', 'Envío iniciado', result);
+  }
+
+  @Post('attendees/:attendeeId/email')
+  async sendAttendeeEmail(@Param('attendeeId') attendeeId: string): Promise<ResponseDto<any>> {
+    const result = await this.emailService.sendToAttendee(attendeeId);
+    if (result.status === 'skipped') throw new BadRequestException(result.reason);
+    if (result.status === 'failed') {
+      throw new BadRequestException(`No se pudo enviar: ${result.error}`);
+    }
+    return new ResponseDto('success', `Correo enviado a ${result.to}`, result);
+  }
+
   // --- Público --------------------------------------------------------------
+
+  @Put('public/attendees/:attendeeId/id-number')
+  async completeIdNumber(
+    @Param('attendeeId') attendeeId: string,
+    @Body(new ValidationPipe()) body: CompleteIdNumberDto,
+  ): Promise<ResponseDto<any>> {
+    const result = await this.service.completeIdNumber(attendeeId, body.idNumber);
+    return new ResponseDto('success', 'Documento registrado', result);
+  }
 
   @Get('public/organizations/:organizationId/search')
   async publicSearch(

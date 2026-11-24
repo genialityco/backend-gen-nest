@@ -9,4 +9,12 @@ export interface Attendee extends Document {
   typeAttendee?: string;
   certificateDownloads?: number;
   properties?: Record<string, any>;
+  certificateEmail?: {
+    status?: 'sent' | 'failed';
+    sentAt?: Date;
+    failedAt?: Date;
+    to?: string;
+    error?: string;
+    count?: number;
+  };
 }
