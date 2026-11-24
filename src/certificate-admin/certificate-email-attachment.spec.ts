@@ -1,11 +1,17 @@
 import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
+import { Types } from 'mongoose';
 import * as request from 'supertest';
 import { pdfAttachmentMessage } from '../email/pdf-attachment-message';
 import { CertificateAdminController } from './certificate-admin.controller';
 import { CertificateAdminSessionGuard } from './certificate-admin-session';
 import { CertificateAdminService } from './certificate-admin.service';
 import { CertificateEmailService } from './certificate-email.service';
+import {
+  defaultEmailSettings,
+  renderEmail,
+  sanitizeEmailSettings,
+} from './certificate-email.template';
 
 describe('PDF adjunto al correo del certificado', () => {
   const password = 'test-certificate-session-password';
@@ -104,5 +110,113 @@ describe('PDF adjunto al correo del certificado', () => {
     expect(encodedPdf.split('\r\n').every((line) => line.length <= 76)).toBe(
       true,
     );
+  });
+});
+
+describe('Cuerpo del correo del certificado', () => {
+  const eventName = '7° Congreso Latinoamericano de Cáncer de Piel';
+
+  it('personaliza el asunto y el cuerpo en HTML y texto plano', () => {
+    const settings = sanitizeEmailSettings(defaultEmailSettings());
+    const { subject, html, text } = renderEmail(settings, {
+      eventName,
+      firstName: 'María',
+      link: 'https://example.com/descarga',
+    });
+
+    expect(subject).toBe(`Tu certificado de ${eventName} está listo`);
+    expect(html).toContain(`bgcolor="#222f59"`);
+    expect(html).toContain('CERTIFICADO DE ASISTENTE');
+    expect(html).toContain(
+      `Gracias por participar en el <strong>${eventName}</strong>`,
+    );
+    expect(html).toContain('Hola, María:');
+    expect(html).toContain('<strong>certificado en PDF</strong>');
+    expect(text).toContain('Si tu nombre tiene algún error');
+    expect(text).toContain('Cordialmente,\nComité Organizador');
+    expect(html).not.toContain('https://example.com/descarga');
+  });
+
+  it('usa un saludo neutro cuando falta el nombre y escapa el nombre del evento en HTML', () => {
+    const { html, text } = renderEmail(defaultEmailSettings(), {
+      eventName: 'Salud & Comunidad <2026>',
+      firstName: ' ',
+    });
+    expect(html).toContain('>Hola:</p>');
+    expect(html).toContain('Salud &amp; Comunidad &lt;2026&gt;');
+    expect(text).toContain('Hola:\n\n');
+  });
+
+  it('guarda el mensaje del certificado en el evento seleccionado', async () => {
+    const eventA = new Types.ObjectId();
+    const eventB = new Types.ObjectId();
+    const certificates = [eventA, eventB].map((eventId) => ({
+      _id: new Types.ObjectId(),
+      eventId,
+      hasDesign: true,
+      emailSettings: defaultEmailSettings(),
+    }));
+    const updateOne = jest.fn((filter, { $set }) => ({
+      exec: async () => {
+        const saved = certificates.find(
+          (certificate) =>
+            certificate._id.equals(filter._id) &&
+            certificate.eventId.equals(filter.eventId),
+        );
+        if (saved) saved.emailSettings = $set.emailSettings;
+      },
+    }));
+    const service = new CertificateEmailService(
+      null,
+      { aggregate: () => ({ exec: async () => [] }) } as any,
+      {
+        aggregate: ([{ $match }]) => ({
+          exec: async () =>
+            certificates.filter((item) => item.eventId.equals($match.eventId)),
+        }),
+        updateOne,
+      } as any,
+      {
+        findById: (id: Types.ObjectId) => ({
+          lean: () => ({ exec: async () => ({ _id: id, name: eventName }) }),
+        }),
+      } as any,
+      null,
+    );
+    const block = defaultEmailSettings().blocks[0];
+    const settings = {
+      ...defaultEmailSettings(),
+      subject: 'Tu constancia del taller',
+      blocks: [
+        {
+          ...block,
+          title: 'Constancia del taller',
+          greeting: 'Estimada {{fullName}}',
+          message: 'Tu **constancia** va adjunta. <Gracias>',
+          closing: '',
+          signature: 'Equipo del taller',
+          headerColor: '#226644',
+        },
+      ],
+    };
+
+    await service.saveSettings(eventA.toHexString(), settings);
+    const first = await service.preview(eventA.toHexString(), undefined);
+    const second = await service.preview(eventB.toHexString(), undefined);
+
+    expect(updateOne).toHaveBeenCalledWith(
+      { _id: certificates[0]._id, eventId: eventA },
+      expect.anything(),
+    );
+    expect(first.subject).toBe('Tu constancia del taller');
+    expect(first.html).toContain('bgcolor="#226644"');
+    expect(first.html).toContain('Estimada María Fernanda Gómez');
+    expect(first.html).toContain(
+      'Tu <strong>constancia</strong> va adjunta. &lt;Gracias&gt;',
+    );
+    expect(first.text).toContain('Equipo del taller');
+    expect(first.text).not.toContain('Cordialmente,');
+    expect(second.html).toContain('Comité Organizador');
+    expect(second.text).not.toContain('Equipo del taller');
   });
 });

@@ -5,7 +5,20 @@
 
 export type EmailAlign = 'left' | 'center' | 'right';
 
+type CertificateBlock = {
+  id: string;
+  type: 'certificate';
+  label: string;
+  title: string;
+  greeting: string;
+  message: string;
+  closing: string;
+  signature: string;
+  headerColor: string;
+};
+
 export type EmailBlock =
+  | CertificateBlock
   | {
       id: string;
       type: 'heading';
@@ -40,7 +53,7 @@ export type EmailBlock =
     }
   | { id: string; type: 'divider'; color?: string }
   | { id: string; type: 'spacer'; height?: number }
-  | { id: string; type: 'html'; html: string };
+  | { id: string; type: 'html'; html: string; plainText?: string };
 
 export interface CertificateEmailSettings {
   // Si está apagado no se envía nada (ni automático ni masivo)
@@ -62,12 +75,14 @@ export interface CertificateEmailSettings {
 export const EMAIL_VARIABLES = [
   { key: 'fullName', label: 'Nombre completo' },
   { key: 'firstName', label: 'Primer nombre' },
+  { key: 'greeting', label: 'Saludo personalizado' },
   { key: 'eventName', label: 'Nombre del evento' },
   { key: 'email', label: 'Correo' },
   { key: 'link', label: 'Enlace de descarga' },
 ];
 
 const BLOCK_TYPES = [
+  'certificate',
   'heading',
   'text',
   'image',
@@ -82,53 +97,41 @@ const MAX_BLOCKS = 40;
 export const DEFAULT_LINK_BASE_URL =
   process.env.CERTIFICATES_APP_URL || 'https://gen-certificados.netlify.app';
 
+const defaultCertificateBlock: CertificateBlock = {
+  id: 'certificate-pdf',
+  type: 'certificate',
+  label: 'CERTIFICADO DE ASISTENTE',
+  title: '{{eventName}}',
+  greeting: '{{greeting}}',
+  message: [
+    'Gracias por participar en el **{{eventName}}**. Fue un gusto contar con tu asistencia.',
+    'Adjunto a este correo encontrarás tu **certificado en PDF**. Te recomendamos descargarlo y guardarlo.',
+    'Si tu nombre tiene algún error, comunícate con el equipo organizador del evento.',
+  ].join('\n\n'),
+  closing: 'Cordialmente,',
+  signature: 'Comité Organizador',
+  headerColor: '#222f59',
+};
+
+export const defaultCertificateEmailBody = (): Pick<
+  CertificateEmailSettings,
+  'preheader' | 'backgroundColor' | 'contentBackgroundColor' | 'blocks'
+> => ({
+  preheader: 'Encuentra tu certificado en PDF adjunto a este correo',
+  backgroundColor: '#f1f2f6',
+  contentBackgroundColor: '#f1f2f6',
+  blocks: [{ ...defaultCertificateBlock }],
+});
+
 export const defaultEmailSettings = (): CertificateEmailSettings => ({
   enabled: false,
   autoSend: true,
   subject: 'Tu certificado de {{eventName}} está listo',
-  preheader: 'Descárgalo desde el enlace de este correo',
   fromName: '',
   replyTo: '',
-  backgroundColor: '#f7fafd',
-  contentBackgroundColor: '#ffffff',
   fontFamily: 'Arial, Helvetica, sans-serif',
   linkBaseUrl: DEFAULT_LINK_BASE_URL,
-  blocks: [
-    {
-      id: 'title',
-      type: 'heading',
-      text: '¡Hola, {{firstName}}!',
-      align: 'center',
-      color: '#1f2d3d',
-      size: 26,
-    },
-    {
-      id: 'body',
-      type: 'text',
-      text: 'Tu certificado de participación en {{eventName}} ya está disponible.\nHaz clic en el botón para verlo y descargarlo.',
-      align: 'center',
-      color: '#3d4b5c',
-      size: 16,
-    },
-    {
-      id: 'cta',
-      type: 'button',
-      text: 'Descargar certificado',
-      align: 'center',
-      color: '#4d93d0',
-      textColor: '#ffffff',
-    },
-    { id: 'gap', type: 'spacer', height: 16 },
-    { id: 'line', type: 'divider', color: '#e3ecf5' },
-    {
-      id: 'footer',
-      type: 'text',
-      text: 'Si el botón no funciona copia este enlace en tu navegador:\n{{link}}',
-      align: 'center',
-      color: '#6b7c8f',
-      size: 12,
-    },
-  ],
+  ...defaultCertificateEmailBody(),
 });
 
 // ---------------------------------------------------------------------------
@@ -161,6 +164,24 @@ export function sanitizeEmailSettings(input: any): CertificateEmailSettings {
     .map((b: any, i: number): EmailBlock => {
       const id = str(b.id, 64) || `block-${i}`;
       switch (b.type) {
+        case 'certificate':
+          return {
+            id,
+            type: 'certificate',
+            label: str(b.label ?? defaultCertificateBlock.label, 120),
+            title: str(b.title ?? defaultCertificateBlock.title, 240),
+            greeting: str(b.greeting ?? defaultCertificateBlock.greeting, 240),
+            message: str(b.message ?? defaultCertificateBlock.message),
+            closing: str(b.closing ?? defaultCertificateBlock.closing, 240),
+            signature: str(
+              b.signature ?? defaultCertificateBlock.signature,
+              240,
+            ),
+            headerColor: color(
+              b.headerColor,
+              defaultCertificateBlock.headerColor,
+            ),
+          };
         case 'heading':
           return {
             id,
@@ -202,7 +223,19 @@ export function sanitizeEmailSettings(input: any): CertificateEmailSettings {
         case 'spacer':
           return { id, type: 'spacer', height: num(b.height, 4, 120, 16) };
         default:
-          return { id, type: 'html', html: str(b.html, 20000) };
+          if (
+            id === defaultCertificateBlock.id &&
+            b.html === legacyCertificateHtml &&
+            b.plainText === legacyCertificateText
+          ) {
+            return { ...defaultCertificateBlock };
+          }
+          return {
+            id,
+            type: 'html',
+            html: str(b.html, 20000),
+            plainText: str(b.plainText),
+          };
       }
     });
 
@@ -254,6 +287,68 @@ const fill = (
     return escape ? escapeHtml(value) : value;
   });
 
+const emphasis = /\*\*([^*\r\n]+)\*\*/g;
+
+function renderCertificateCard(
+  block: CertificateBlock,
+  format: (value: string) => string,
+): string {
+  const label = format(block.label);
+  const title = format(block.title);
+  const signature = format(block.signature);
+  const footer = [
+    format(block.closing),
+    signature && `<strong>${signature}</strong>`,
+  ]
+    .filter(Boolean)
+    .join('<br>');
+  const paragraphs = [
+    block.greeting,
+    ...block.message.split(/\r?\n[ \t]*\r?\n/),
+  ]
+    .map(format)
+    .filter(Boolean)
+    .map((paragraph) => `<p style="margin:0 0 14px;">${paragraph}</p>`);
+  if (footer) paragraphs.push(`<p style="margin:22px 0 0;">${footer}</p>`);
+
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;border-collapse:separate;">
+<tr><td bgcolor="${block.headerColor}" style="border-radius:8px 8px 0 0;padding:24px 30px 28px;color:#ffffff;">
+${label ? `<div style="margin-bottom:6px;color:#d9deee;font-size:13px;letter-spacing:.5px;">${label}</div>` : ''}
+${title ? `<h1 style="margin:0;font-size:19px;line-height:1.3;font-weight:700;">${title}</h1>` : ''}
+</td></tr>
+<tr><td bgcolor="#ffffff" style="border-radius:0 0 8px 8px;padding:28px 30px 24px;color:#303643;font-size:14px;line-height:1.6;">
+${paragraphs.join('\n')}
+</td></tr>
+</table>`;
+}
+
+function renderCertificateText(
+  block: CertificateBlock,
+  format: (value: string) => string,
+) {
+  const header = [block.label, block.title]
+    .map(format)
+    .filter(Boolean)
+    .join('\n');
+  const footer = [block.closing, block.signature]
+    .map(format)
+    .filter(Boolean)
+    .join('\n');
+  return [header, format(block.greeting), format(block.message), footer]
+    .filter(Boolean)
+    .join('\n\n');
+}
+
+// Convierte solo el cuerpo predeterminado anterior, incluso si el evento cambió su asunto.
+const legacyCertificateHtml = renderCertificateCard(
+  defaultCertificateBlock,
+  (value) => escapeHtml(value).replace(emphasis, '<strong>$1</strong>'),
+);
+const legacyCertificateText = renderCertificateText(
+  defaultCertificateBlock,
+  (value) => value.replace(emphasis, '$1'),
+);
+
 // Texto plano del admin -> HTML: escapa, reemplaza variables, saltos de línea
 // y convierte el enlace de descarga en un <a>
 const textToHtml = (
@@ -275,8 +370,13 @@ const textToHtml = (
 
 export function renderEmail(
   settings: CertificateEmailSettings,
-  vars: Record<string, string>,
+  values: Record<string, string>,
 ): { subject: string; html: string; text: string } {
+  const firstName = values.firstName?.trim();
+  const vars: Record<string, string> = {
+    ...values,
+    greeting: firstName ? `Hola, ${firstName}:` : 'Hola:',
+  };
   const font = settings.fontFamily;
   const accent =
     (
@@ -289,6 +389,16 @@ export function renderEmail(
   const rows = settings.blocks
     .map((block) => {
       switch (block.type) {
+        case 'certificate': {
+          const card = renderCertificateCard(block, (value) =>
+            fill(
+              escapeHtml(value.trim()).replace(emphasis, '<strong>$1</strong>'),
+              vars,
+              true,
+            ).replace(/\r?\n/g, '<br>'),
+          );
+          return `<tr><td style="padding:8px 32px;font-family:${font};">${card}</td></tr>`;
+        }
         case 'heading':
           return `<tr><td style="padding:8px 32px;text-align:${block.align};"><h1 style="margin:0;font-family:${font};font-size:${block.size}px;line-height:1.3;color:${block.color};font-weight:700;">${textToHtml(block.text, vars, accent)}</h1></td></tr>`;
         case 'text':
@@ -337,10 +447,16 @@ ${rows}
   // Versión de texto plano para clientes sin HTML (y menos spam)
   const text = settings.blocks
     .map((block) => {
+      if (block.type === 'certificate')
+        return renderCertificateText(block, (value) =>
+          fill(value.trim().replace(emphasis, '$1'), vars, false),
+        );
       if (block.type === 'heading' || block.type === 'text')
         return fill(block.text, vars, false);
       if (block.type === 'button')
         return `${fill(block.text, vars, false)}: ${vars.link ?? ''}`;
+      if (block.type === 'html' && block.plainText)
+        return fill(block.plainText, vars, false);
       return '';
     })
     .filter(Boolean)

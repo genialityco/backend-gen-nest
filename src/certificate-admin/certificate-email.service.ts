@@ -11,6 +11,7 @@ import { Member } from 'src/member/interfaces/member.interface';
 import {
   CertificateEmailSettings,
   EMAIL_VARIABLES,
+  defaultCertificateEmailBody,
   defaultEmailSettings,
   renderEmail,
   sanitizeEmailSettings,
@@ -153,6 +154,7 @@ export class CertificateEmailService {
       ),
       saved: Boolean(certificate?.emailSettings),
       settings: this.settingsOf(certificate),
+      defaultBody: defaultCertificateEmailBody(),
       variables: EMAIL_VARIABLES,
       stats: await this.getStats(evId),
     };
@@ -174,7 +176,7 @@ export class CertificateEmailService {
     }
     await this.certificateModel
       .updateOne(
-        { _id: certificate._id },
+        { _id: certificate._id, eventId: evId },
         { $set: { emailSettings: settings } },
       )
       .exec();
