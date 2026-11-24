@@ -4,6 +4,7 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as AWS from 'aws-sdk';
+import { pdfAttachmentMessage } from './pdf-attachment-message';
 
 @Injectable()
 export class EmailService {
@@ -111,6 +112,32 @@ export class EmailService {
       );
       throw error;
     }
+  }
+
+  async sendPdfEmail(body: {
+    to: string;
+    subject: string;
+    html: string;
+    text: string;
+    pdf: Buffer;
+    fromName?: string;
+    replyTo?: string;
+  }) {
+    const from = this.cleanEmail(this.from);
+    if (!this.isValidEmail(from)) throw new BadRequestException('Remitente inválido');
+    const [to] = this.prepareAddressList(body.to);
+    const [replyTo] = this.prepareAddressList(body.replyTo, 'replyTo');
+    const message = pdfAttachmentMessage({
+      ...body,
+      from,
+      fromName: body.fromName || this.fromName,
+      to,
+      replyTo,
+    });
+    if (message.length > 10_000_000) {
+      throw new BadRequestException('El correo con el PDF supera el tamaño admitido por SES');
+    }
+    return this.ses.sendRawEmail({ Source: from, Destinations: [to], RawMessage: { Data: message } }).promise();
   }
 
   // ======================

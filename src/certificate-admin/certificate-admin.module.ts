@@ -9,6 +9,7 @@ import { EventSchema } from 'src/event/schemas/event.schema';
 import { CertificateAdminController } from './certificate-admin.controller';
 import { CertificateAdminService } from './certificate-admin.service';
 import { CertificateEmailService } from './certificate-email.service';
+import { CertificateAdminSessionGuard } from './certificate-admin-session';
 
 @Module({
   imports: [
@@ -22,6 +23,6 @@ import { CertificateEmailService } from './certificate-email.service';
     ]),
   ],
   controllers: [CertificateAdminController],
-  providers: [CertificateAdminService, CertificateEmailService],
+  providers: [CertificateAdminService, CertificateEmailService, CertificateAdminSessionGuard],
 })
 export class CertificateAdminModule {}

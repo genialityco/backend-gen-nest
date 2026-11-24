@@ -7,20 +7,39 @@ import {
   Post,
   Put,
   Query,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
   ValidationPipe,
 } from '@nestjs/common';
-import { ResponseDto } from 'src/common/response.dto';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { memoryStorage } from 'multer';
+import { ResponseDto } from '../common/response.dto';
+import { CertificateAdminSessionGuard, createCertificateAdminSession } from './certificate-admin-session';
 import { CertificateAdminService } from './certificate-admin.service';
 import { CertificateEmailService } from './certificate-email.service';
 import {
   BulkAttendeesDto,
+  CertificateEmailUploadDto,
   CompleteIdNumberDto,
+  EmailRecipientsQueryDto,
   EmailSettingsBodyDto,
-  SendEventEmailsDto,
-  TestEmailDto,
+  TestEmailUploadDto,
   UpdateAttendeeDataDto,
   UpdateMemberPropertiesDto,
 } from './dto/certificate-admin.dto';
+
+const CertificatePdfUpload = FileInterceptor('certificate', {
+  storage: memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024, files: 1, fields: 2 },
+});
+
+function certificatePdf(file?: Express.Multer.File): Buffer {
+  if (file?.mimetype !== 'application/pdf' || file.buffer.subarray(0, 5).toString('ascii') !== '%PDF-') {
+    throw new BadRequestException('Adjunta el certificado generado en formato PDF');
+  }
+  return file.buffer;
+}
 
 @Controller('certificate-admin')
 export class CertificateAdminController {
@@ -30,6 +49,11 @@ export class CertificateAdminController {
   ) {}
 
   // --- Administración -------------------------------------------------------
+
+  @Post('session')
+  createSession(@Body('password') password: string) {
+    return new ResponseDto('success', 'Sesión iniciada', createCertificateAdminSession(password));
+  }
 
   @Get('organizations/:organizationId/events')
   async organizationEvents(@Param('organizationId') organizationId: string): Promise<ResponseDto<any>> {
@@ -113,6 +137,7 @@ export class CertificateAdminController {
   }
 
   @Put('events/:eventId/email')
+  @UseGuards(CertificateAdminSessionGuard)
   async saveEmailConfig(
     @Param('eventId') eventId: string,
     @Body(new ValidationPipe()) body: EmailSettingsBodyDto,
@@ -131,31 +156,46 @@ export class CertificateAdminController {
   }
 
   @Post('events/:eventId/email/test')
+  @UseGuards(CertificateAdminSessionGuard)
+  @UseInterceptors(CertificatePdfUpload)
   async testEmail(
     @Param('eventId') eventId: string,
-    @Body(new ValidationPipe()) body: TestEmailDto,
+    @Body(new ValidationPipe()) body: TestEmailUploadDto,
+    @UploadedFile() file?: Express.Multer.File,
   ): Promise<ResponseDto<any>> {
-    const result = await this.emailService.sendTest(eventId, body.to, body.settings);
+    const pdf = certificatePdf(file);
+    let settings: unknown;
+    if (body.settings) {
+      try {
+        settings = JSON.parse(body.settings);
+      } catch {
+        throw new BadRequestException('La configuración del correo no es válida');
+      }
+    }
+    const result = await this.emailService.sendTest(eventId, body.to, pdf, settings);
     return new ResponseDto('success', 'Correo de prueba enviado', result);
   }
 
-  @Post('events/:eventId/email/send')
-  async sendEventEmails(
+  @Get('events/:eventId/email/recipients')
+  @UseGuards(CertificateAdminSessionGuard)
+  async eventEmailRecipients(
     @Param('eventId') eventId: string,
-    @Body(new ValidationPipe()) body: SendEventEmailsDto,
+    @Query(new ValidationPipe()) query: EmailRecipientsQueryDto,
   ): Promise<ResponseDto<any>> {
-    const result = await this.emailService.sendToEvent(eventId, body.scope ?? 'pending');
-    return new ResponseDto('success', 'Envío iniciado', result);
+    const result = await this.emailService.getEventRecipients(eventId, query.scope ?? 'pending', query.after);
+    return new ResponseDto('success', 'Certificados pendientes de procesar', result);
   }
 
   @Post('attendees/:attendeeId/email')
-  async sendAttendeeEmail(@Param('attendeeId') attendeeId: string): Promise<ResponseDto<any>> {
-    const result = await this.emailService.sendToAttendee(attendeeId);
-    if (result.status === 'skipped') throw new BadRequestException(result.reason);
-    if (result.status === 'failed') {
-      throw new BadRequestException(`No se pudo enviar: ${result.error}`);
-    }
-    return new ResponseDto('success', `Correo enviado a ${result.to}`, result);
+  @UseGuards(CertificateAdminSessionGuard)
+  @UseInterceptors(CertificatePdfUpload)
+  async sendAttendeeEmail(
+    @Param('attendeeId') attendeeId: string,
+    @Body(new ValidationPipe()) body: CertificateEmailUploadDto,
+    @UploadedFile() file?: Express.Multer.File,
+  ): Promise<ResponseDto<any>> {
+    const result = await this.emailService.sendToAttendee(attendeeId, certificatePdf(file), body.mode ?? 'manual', body.memberId);
+    return new ResponseDto('success', 'Envío de certificado procesado', result);
   }
 
   // --- Público --------------------------------------------------------------

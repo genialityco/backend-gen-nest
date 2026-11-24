@@ -10,7 +10,6 @@ import { Member } from 'src/member/interfaces/member.interface';
 import { User } from 'src/user/interfaces/user.interface';
 import { Attendee } from 'src/attendee/interfaces/attendee.interface';
 import { Certificate } from 'src/certificate/interfaces/certificate.interface';
-import { CertificateEmailService } from './certificate-email.service';
 import {
   ATTENDEE_ROOT_KEYS,
   MEMBER_BASE_KEYS,
@@ -63,7 +62,6 @@ export class CertificateAdminService {
     @InjectModel('Attendee') private attendeeModel: Model<Attendee>,
     @InjectModel('Certificate') private certificateModel: Model<Certificate>,
     @InjectModel('Event') private eventModel: Model<any>,
-    private readonly emailService: CertificateEmailService,
   ) {}
 
   // ---------------------------------------------------------------------------
@@ -230,13 +228,6 @@ export class CertificateAdminService {
         });
       }
     }
-
-    // Correo con el enlace de descarga a los recién inscritos (en segundo plano,
-    // solo si el certificado tiene diseño y el envío automático está activo)
-    this.emailService.queueAutoSend(
-      event._id,
-      results.filter((r) => r.status === 'created' && r.attendeeId).map((r) => r.attendeeId),
-    );
 
     return {
       results,

@@ -3,8 +3,8 @@ import {
   ArrayMaxSize,
   IsArray,
   IsBoolean,
-  IsEmail,
   IsIn,
+  IsMongoId,
   IsNumber,
   IsObject,
   IsOptional,
@@ -84,15 +84,32 @@ export class EmailSettingsBodyDto {
   readonly settings?: Record<string, any>;
 }
 
-export class TestEmailDto extends EmailSettingsBodyDto {
-  @IsEmail({}, { message: 'Correo de prueba inválido' })
-  readonly to: string;
-}
-
-export class SendEventEmailsDto {
+export class EmailRecipientsQueryDto {
   @IsOptional()
   @IsIn(['pending', 'all'])
   readonly scope?: 'pending' | 'all';
+
+  @IsOptional()
+  @IsString()
+  readonly after?: string;
+}
+
+export class CertificateEmailUploadDto {
+  @IsMongoId()
+  readonly memberId: string;
+
+  @IsOptional()
+  @IsIn(['manual', 'auto', 'pending', 'all'])
+  readonly mode?: 'manual' | 'auto' | 'pending' | 'all';
+}
+
+export class TestEmailUploadDto {
+  @IsString()
+  readonly to: string;
+
+  @IsOptional()
+  @IsString()
+  readonly settings?: string;
 }
 
 export class CompleteIdNumberDto {

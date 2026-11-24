@@ -12,6 +12,8 @@ export interface Attendee extends Document {
   certificateEmail?: {
     status?: 'sent' | 'failed';
     sentAt?: Date;
+    attachmentSentAt?: Date;
+    sendingUntil?: Date;
     failedAt?: Date;
     to?: string;
     error?: string;

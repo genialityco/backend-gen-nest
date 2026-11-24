@@ -1,7 +1,6 @@
 import {
   BadRequestException,
   Injectable,
-  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
@@ -16,12 +15,20 @@ import {
   renderEmail,
   sanitizeEmailSettings,
 } from './certificate-email.template';
-import { EmailService } from 'src/email/email.service';
+import { EmailService } from '../email/email.service';
 import { normalizeEmail } from './certificate-admin.utils';
 
 const EMAIL_REGEX = /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/;
-// Pausa entre correos de un envío masivo (SES limita los envíos por segundo)
-const BULK_DELAY_MS = Number(process.env.EMAIL_BULK_DELAY_MS ?? 300);
+const RECIPIENT_PAGE_SIZE = 50;
+const SEND_LOCK_MS = 10 * 60 * 1000;
+const pendingAttachment = {
+  $or: [
+    { 'certificateEmail.status': { $ne: 'sent' } },
+    { 'certificateEmail.attachmentSentAt': null },
+  ],
+};
+
+export type SendMode = 'manual' | 'auto' | 'pending' | 'all';
 
 export type SendResult =
   | { status: 'sent'; to: string }
@@ -38,22 +45,8 @@ const titleCase = (value: string) =>
       (_, space, letter) => space + letter.toUpperCase(),
     );
 
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-// El diseño está habilitado cuando el certificado del evento tiene elementos
-export const hasDesign = (certificate: any): boolean =>
-  Boolean(
-    certificate &&
-      Array.isArray(certificate.elements) &&
-      certificate.elements.length > 0,
-  );
-
 @Injectable()
 export class CertificateEmailService {
-  private readonly logger = new Logger(CertificateEmailService.name);
-  // Eventos con un envío masivo en curso (evita dobles clics)
-  private readonly runningEvents = new Set<string>();
-
   constructor(
     @InjectModel('Member') private memberModel: Model<Member>,
     @InjectModel('Attendee') private attendeeModel: Model<Attendee>,
@@ -87,14 +80,16 @@ export class CertificateEmailService {
     to: string,
     settings: CertificateEmailSettings,
     vars: Record<string, string>,
+    pdf: Buffer,
   ) {
     this.assertConfigured();
     const { subject, html, text } = renderEmail(settings, vars);
-    await this.emailService.sendUniversalEmail({
+    await this.emailService.sendPdfEmail({
       to,
       subject,
       html,
       text,
+      pdf,
       // Sin nombre configurado se usa AWS_SES_EMAIL_FROM_NAME
       fromName: settings.fromName || undefined,
       replyTo: settings.replyTo || undefined,
@@ -106,11 +101,30 @@ export class CertificateEmailService {
   // ---------------------------------------------------------------------------
 
   private async findCertificate(eventId: Types.ObjectId) {
-    return this.certificateModel
-      .findOne({ eventId })
-      .sort({ updatedAt: -1 })
-      .lean<any>()
+    const [certificate] = await this.certificateModel
+      .aggregate<{
+        _id: Types.ObjectId;
+        hasDesign: boolean;
+        emailSettings?: unknown;
+      }>([
+        { $match: { eventId } },
+        { $sort: { updatedAt: -1 } },
+        { $limit: 1 },
+        {
+          $project: {
+            emailSettings: 1,
+            hasDesign: {
+              $cond: [
+                { $isArray: '$elements' },
+                { $gt: [{ $size: '$elements' }, 0] },
+                false,
+              ],
+            },
+          },
+        },
+      ])
       .exec();
+    return certificate;
   }
 
   private settingsOf(certificate: any): CertificateEmailSettings {
@@ -131,9 +145,12 @@ export class CertificateEmailService {
     return {
       event: { _id: event._id, name: event.name },
       certificateId: certificate?._id ?? null,
-      hasDesign: hasDesign(certificate),
+      hasDesign: Boolean(certificate?.hasDesign),
       emailConfigured: this.isConfigured(),
-      sending: this.runningEvents.has(String(evId)),
+      batchDelayMs: Math.max(
+        0,
+        Number(process.env.EMAIL_BULK_DELAY_MS ?? 300) || 0,
+      ),
       saved: Boolean(certificate?.emailSettings),
       settings: this.settingsOf(certificate),
       variables: EMAIL_VARIABLES,
@@ -150,7 +167,7 @@ export class CertificateEmailService {
       );
     }
     const settings = sanitizeEmailSettings(input);
-    if (settings.enabled && !hasDesign(certificate)) {
+    if (settings.enabled && !certificate.hasDesign) {
       throw new BadRequestException(
         'No se puede habilitar el envío: el certificado todavía no tiene diseño',
       );
@@ -198,7 +215,26 @@ export class CertificateEmailService {
             total: { $sum: 1 },
             sent: {
               $sum: {
-                $cond: [{ $eq: ['$certificateEmail.status', 'sent'] }, 1, 0],
+                $cond: [
+                  {
+                    $and: [
+                      { $eq: ['$certificateEmail.status', 'sent'] },
+                      {
+                        $ne: [
+                          {
+                            $ifNull: [
+                              '$certificateEmail.attachmentSentAt',
+                              null,
+                            ],
+                          },
+                          null,
+                        ],
+                      },
+                    ],
+                  },
+                  1,
+                  0,
+                ],
               },
             },
             failed: {
@@ -219,7 +255,7 @@ export class CertificateEmailService {
   // Envíos
   // ---------------------------------------------------------------------------
 
-  async sendTest(eventId: string, to: string, input?: any) {
+  async sendTest(eventId: string, to: string, pdf: Buffer, input?: any) {
     const email = normalizeEmail(to);
     if (!EMAIL_REGEX.test(email))
       throw new BadRequestException('Correo de prueba inválido');
@@ -230,7 +266,7 @@ export class CertificateEmailService {
       .exec();
     if (!event) throw new NotFoundException('No se encontró el evento');
     const certificate = await this.findCertificate(evId);
-    if (!hasDesign(certificate)) {
+    if (!certificate?.hasDesign) {
       throw new BadRequestException('El certificado todavía no tiene diseño');
     }
     const settings = input
@@ -241,6 +277,7 @@ export class CertificateEmailService {
         email,
         settings,
         this.sampleVars(settings, event.name),
+        pdf,
       );
     } catch (error: any) {
       if (error instanceof BadRequestException) throw error;
@@ -251,48 +288,44 @@ export class CertificateEmailService {
     return { to: email };
   }
 
-  // Envío a un asistente puntual (botón en la tabla). `requireEnabled` lo usan
-  // los envíos automáticos/masivos; el manual solo exige el diseño.
   async sendToAttendee(
-    attendeeId: string | Types.ObjectId,
-    {
-      requireEnabled = false,
-      cache,
-    }: { requireEnabled?: boolean; cache?: Map<string, any> } = {},
+    attendeeId: string,
+    pdf: Buffer,
+    mode: SendMode,
+    memberId: string,
   ): Promise<SendResult> {
     const attendee = await this.attendeeModel
-      .findById(
-        typeof attendeeId === 'string'
-          ? this.toObjectId(attendeeId, 'attendeeId')
-          : attendeeId,
-      )
+      .findById(this.toObjectId(attendeeId, 'attendeeId'))
       .lean<any>()
       .exec();
     if (!attendee) throw new NotFoundException('No se encontró el asistente');
-
-    // El certificado y el evento se repiten en un envío masivo: se cachean
-    const key = String(attendee.eventId);
-    let context = cache?.get(key);
-    if (!context) {
-      const [certificate, event] = await Promise.all([
-        this.findCertificate(attendee.eventId),
-        this.eventModel
-          .findById(attendee.eventId, { name: 1 })
-          .lean<any>()
-          .exec(),
-      ]);
-      context = { certificate, event, settings: this.settingsOf(certificate) };
-      cache?.set(key, context);
+    if (String(attendee.memberId) !== memberId) {
+      return {
+        status: 'skipped',
+        reason:
+          'El miembro asociado al certificado cambió. Vuelve a generarlo.',
+      };
     }
-    const { certificate, event, settings } = context;
 
-    if (!hasDesign(certificate)) {
+    const [certificate, event] = await Promise.all([
+      this.findCertificate(attendee.eventId),
+      this.eventModel
+        .findById(attendee.eventId, { name: 1 })
+        .lean<any>()
+        .exec(),
+    ]);
+    const settings = this.settingsOf(certificate);
+
+    if (!certificate?.hasDesign) {
       return {
         status: 'skipped',
         reason: 'El certificado todavía no tiene diseño',
       };
     }
-    if (requireEnabled && !settings.enabled) {
+    if (
+      mode !== 'manual' &&
+      (!settings.enabled || (mode === 'auto' && !settings.autoSend))
+    ) {
       return {
         status: 'skipped',
         reason: 'El envío de correos está deshabilitado',
@@ -306,7 +339,13 @@ export class CertificateEmailService {
     }
 
     const member = attendee.memberId
-      ? await this.memberModel.findById(attendee.memberId).lean<any>().exec()
+      ? await this.memberModel
+          .findById(attendee.memberId, {
+            'properties.email': 1,
+            'properties.fullName': 1,
+          })
+          .lean<any>()
+          .exec()
       : null;
     const email = normalizeEmail(member?.properties?.email);
     if (!EMAIL_REGEX.test(email)) {
@@ -325,63 +364,75 @@ export class CertificateEmailService {
       link: `${settings.linkBaseUrl}/descarga/${attendee._id}`,
     };
 
+    this.assertConfigured();
+    const now = new Date();
+    const lockUntil = new Date(now.getTime() + SEND_LOCK_MS);
+    const lockField = 'certificateEmail.sendingUntil';
+    const claimed = await this.attendeeModel
+      .updateOne(
+        {
+          _id: attendee._id,
+          memberId: attendee.memberId,
+          attended: true,
+          $and: [
+            { $or: [{ [lockField]: null }, { [lockField]: { $lte: now } }] },
+            ...(mode === 'pending' || mode === 'auto'
+              ? [pendingAttachment]
+              : []),
+          ],
+        },
+        { $set: { [lockField]: lockUntil } },
+      )
+      .exec();
+    if (claimed.modifiedCount !== 1) {
+      return {
+        status: 'skipped',
+        reason: 'El certificado ya se envió o hay un envío en curso',
+      };
+    }
+
+    const claim = { _id: attendee._id, [lockField]: lockUntil };
     try {
-      await this.deliver(email, settings, vars);
-      await this.attendeeModel
-        .updateOne(
-          { _id: attendee._id },
-          {
-            $set: {
-              'certificateEmail.status': 'sent',
-              'certificateEmail.sentAt': new Date(),
-              'certificateEmail.to': email,
-              'certificateEmail.error': '',
-            },
-            $inc: { 'certificateEmail.count': 1 },
-          },
-        )
-        .exec();
-      return { status: 'sent', to: email };
+      await this.deliver(email, settings, vars, pdf);
     } catch (error: any) {
-      // Sin correo configurado no se marca como fallido: es un problema global
-      if (error instanceof BadRequestException) throw error;
       const message = String(error?.message ?? 'Error al enviar').slice(0, 300);
       await this.attendeeModel
-        .updateOne(
-          { _id: attendee._id },
-          {
-            $set: {
-              'certificateEmail.status': 'failed',
-              'certificateEmail.error': message,
-              'certificateEmail.failedAt': new Date(),
-            },
+        .updateOne(claim, {
+          $set: {
+            'certificateEmail.status': 'failed',
+            'certificateEmail.error': message,
+            'certificateEmail.failedAt': new Date(),
           },
-        )
+          $unset: { [lockField]: 1 },
+        })
         .exec();
       return { status: 'failed', error: message };
     }
-  }
-
-  // Envío automático después de inscribir asistentes. No bloquea la respuesta.
-  queueAutoSend(eventId: Types.ObjectId, attendeeIds: string[]) {
-    if (!attendeeIds.length || !this.isConfigured()) return;
-    this.findCertificate(eventId)
-      .then((certificate) => {
-        const settings = this.settingsOf(certificate);
-        if (!hasDesign(certificate) || !settings.enabled || !settings.autoSend)
-          return;
-        return this.runBatch(attendeeIds.map((id) => new Types.ObjectId(id)));
+    const sentAt = new Date();
+    await this.attendeeModel
+      .updateOne(claim, {
+        $set: {
+          'certificateEmail.status': 'sent',
+          'certificateEmail.sentAt': sentAt,
+          'certificateEmail.attachmentSentAt': sentAt,
+          'certificateEmail.to': email,
+          'certificateEmail.error': '',
+        },
+        $inc: { 'certificateEmail.count': 1 },
+        $unset: { [lockField]: 1 },
       })
-      .catch((error) =>
-        this.logger.error(`Envío automático falló: ${error?.message}`),
-      );
+      .exec();
+    return { status: 'sent', to: email };
   }
 
-  // Envío masivo desde la interfaz: 'pending' = a quienes no se les ha enviado
-  async sendToEvent(eventId: string, scope: 'pending' | 'all') {
+  async getEventRecipients(
+    eventId: string,
+    scope: 'pending' | 'all',
+    after?: string,
+  ) {
     const evId = this.toObjectId(eventId, 'eventId');
     const certificate = await this.findCertificate(evId);
-    if (!hasDesign(certificate)) {
+    if (!certificate?.hasDesign) {
       throw new BadRequestException('El certificado todavía no tiene diseño');
     }
     if (!this.settingsOf(certificate).enabled) {
@@ -390,50 +441,30 @@ export class CertificateEmailService {
       );
     }
     this.assertConfigured();
-    if (this.runningEvents.has(String(evId))) {
-      throw new BadRequestException(
-        'Ya hay un envío en curso para este evento',
-      );
-    }
-
-    const filter: Record<string, any> = { eventId: evId, attended: true };
-    if (scope !== 'all') filter['certificateEmail.status'] = { $ne: 'sent' };
     const attendees = await this.attendeeModel
-      .find(filter, { _id: 1 })
-      .lean<any>()
-      .exec();
-    const ids = attendees.map((a) => a._id as Types.ObjectId);
-
-    this.runningEvents.add(String(evId));
-    this.runBatch(ids)
-      .catch((error) =>
-        this.logger.error(`Envío masivo falló: ${error?.message}`),
+      .find(
+        {
+          eventId: evId,
+          attended: true,
+          ...(scope === 'pending' ? pendingAttachment : {}),
+          ...(after ? { _id: { $gt: this.toObjectId(after, 'after') } } : {}),
+        },
+        { _id: 1 },
       )
-      .finally(() => this.runningEvents.delete(String(evId)));
-
-    return { queued: ids.length };
-  }
-
-  private async runBatch(ids: Types.ObjectId[]) {
-    const cache = new Map<string, any>();
-    const totals = { sent: 0, skipped: 0, failed: 0 };
-    for (const id of ids) {
-      try {
-        const result = await this.sendToAttendee(id, {
-          requireEnabled: true,
-          cache,
-        });
-        totals[result.status]++;
-      } catch (error: any) {
-        totals.failed++;
-        this.logger.warn(`Correo a attendee ${id} falló: ${error?.message}`);
-      }
-      if (BULK_DELAY_MS > 0) await sleep(BULK_DELAY_MS);
-    }
-    this.logger.log(
-      `Correos de certificado: ${totals.sent} enviados, ${totals.skipped} omitidos, ${totals.failed} fallidos`,
-    );
-    return totals;
+      .sort({ _id: 1 })
+      .limit(RECIPIENT_PAGE_SIZE + 1)
+      .lean()
+      .exec();
+    const ids = attendees
+      .slice(0, RECIPIENT_PAGE_SIZE)
+      .map(({ _id }) => String(_id));
+    return {
+      ids,
+      next:
+        attendees.length > RECIPIENT_PAGE_SIZE
+          ? ids[ids.length - 1]
+          : undefined,
+    };
   }
 
   private toObjectId(value: string, name: string): Types.ObjectId {
